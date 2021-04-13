@@ -1,0 +1,14 @@
+{
+  "name": "test-whatsapp-bot",
+  "version": "1.0.0",
+  "description": "Whatsapp bot to send messages using whatsapp web and puppeteer js.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Luciano Tassara",
+  "license": "ISC",
+  "dependencies": {
+    "whatsapp-web.js": "^1.12.5"
+  }
+}
