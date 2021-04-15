@@ -4,11 +4,15 @@
   "description": "Whatsapp bot to send messages using whatsapp web and puppeteer js.",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node index.js",
+    "test": "nodemon index.js --inspect"
   },
   "author": "Luciano Tassara",
   "license": "ISC",
   "dependencies": {
+    "dotenv": "^8.2.0",
+    "node-fecth": "0.0.1-security",
+    "nodemon": "^2.0.7",
     "whatsapp-web.js": "^1.12.5"
   }
 }

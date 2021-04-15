@@ -1,14 +1,29 @@
+require('dotenv').config()
 const fs = require('fs');
+const fetch = require('node-fetch');
 const { Client } = require('whatsapp-web.js');
 
-
-const RECEIVERS = require('./receivers');
-
-
+const ALLOWED_SENDER_GROUP = process.env.ALLOWED_SENDER_GROUP;
 const SESSION_FILE_PATH = './session.json';
+
 let sessionCfg;
 if (fs.existsSync(SESSION_FILE_PATH)) {
     sessionCfg = require(SESSION_FILE_PATH);
+}
+
+let receivers = {}
+
+async function getReceivers(){
+    try {
+        const response = await fetch(process.env.GSHEET_EXPRESS_API);
+        const json = await response.json();
+        console.log(`Haciendo fetch a gsheet-extraction-microservice para obtener los remitentes`)
+        console.log(`Datos de Google Sheets: ${JSON.stringify( json )}`);
+        return json;
+
+    } catch (error) {
+        console.error(error);
+    }
 }
 
 const client = new Client({ puppeteer: { headless: true }, session: sessionCfg });
@@ -43,10 +58,123 @@ client.on('ready', () => {
 
 client.on('message', async msg => {
     console.log('MESSAGE RECEIVED', msg);
+    if(msg.from.endsWith(ALLOWED_SENDER_GROUP)){
+        console.log('Enviado desde grupo BOT');
+        if (msg.body === '!cargar-destinatarios') {
+            try {
+                const chat = await msg.getChat();
+                // simulates typing in the chat
+                chat.sendStateTyping();
+                receivers = await getReceivers();
+                var res = receivers.filter(val => {
+                    return val.phone
+                })
+                console.log(`Cantidad de destinatarios ${res.length}`)
+                msg.reply(`Se cargaron ${res.length} destinatarios`);
+                chat.clearState();
+            } catch (error) {
+                msg.reply(`*HA OCURRIDO UN ERROR EN EL BOT*`);
+            }
+            
+        } else if (msg.body === '!borrar-destinatarios') {           
+            const chat = await msg.getChat();
+            // simulates typing in the chat
+            chat.sendStateTyping();
+            receivers = {};
+            msg.reply(`Se han eliminado los destinatarios cargados.`);
+            chat.clearState();
+            
+        } else if (msg.body.startsWith('!enviar-destinatarios ')) {
+            const quotedMsg = await msg.getQuotedMessage();
+            if (quotedMsg.hasMedia) {
+                const attachmentData = await quotedMsg.downloadMedia();
+    
+                originalMessage = msg.body.slice(22);
+    
+                for (const receiver of receivers) {
 
-    if (msg.body === '!ping reply') {
+                    console.log('showing this receiver.. '+receiver.nickname);
+                    let number = receiver.phone;
+                    let message = originalMessage.replace('%NICKNAME%',receiver.nickname);
+                    message = message.replace('%NAME%', receiver.name);
+                    number = number.includes('@c.us') ? number : `${number}@c.us`;
+                    
+                    let chat = await msg.getChat();
+                    chat.sendSeen();
+                    console.log(`Sending message to ${receiver.name} for being in the role of ${receiver.role}`);
+                    client.sendMessage(number, attachmentData, {caption: message}); 
+                    
+                    // TODO: Create option to send witouth media attached.
+                    
+                }
+            } else {
+                msg.reply('No media there');
+    
+            }
+            
+        } 
+        /*********************************************** */
+        else if (msg.body.startsWith('!send-lideres ')) {
+            const quotedMsg = await msg.getQuotedMessage();
+            if (quotedMsg.hasMedia) {
+                const attachmentData = await quotedMsg.downloadMedia();
+    
+                originalMessage = msg.body.slice(14);
+    
+                for (const receiver of receivers) {
+                    if(receiver.role === 'lider'){
+                        console.log('showing this receiver.. '+receiver.nickname);
+                        let number = receiver.phone;
+                        let message = originalMessage.replace('%NICKNAME%',receiver.nickname);
+                        message = message.replace('%NAME%', receiver.name);
+                        number = number.includes('@c.us') ? number : `${number}@c.us`;
+                        let chat = await msg.getChat();
+                        chat.sendSeen();
+                        console.log(`Sending message to ${receiver.name} for being in the role of ${receiver.role}`);
+                        client.sendMessage(number, attachmentData, {caption: message}); 
+                    } else {
+                        console.log(`${receiver.name} is not in the "lider" role. It's role is ${receiver.role}`);
+                    }
+                    // TODO: Create an option to send witouth media attached.
+                    
+                }
+            } else {
+                msg.reply('No media there');
+    
+            }
+        }else if (msg.body.startsWith('!send-miembros ')) {
+            const quotedMsg = await msg.getQuotedMessage();
+            if (quotedMsg.hasMedia) {
+                const attachmentData = await quotedMsg.downloadMedia();
+    
+                originalMessage = msg.body.slice(15);
+    
+                for (const receiver of receivers) {
+                    if(receiver.role === 'miembro'){
+                        console.log('showing this receiver.. '+receiver.nickname);
+                        let number = receiver.phone;
+                        let message = originalMessage.replace('%NICKNAME%',receiver.nickname);
+                        message = message.replace('%NAME%', receiver.name);
+                        number = number.includes('@c.us') ? number : `${number}@c.us`;
+                        let chat = await msg.getChat();
+                        chat.sendSeen();
+                        console.log(`Sending message to ${receiver.name} for being in the role of ${receiver.role}`);
+                        client.sendMessage(number, attachmentData, {caption: message}); 
+                    } else {
+                        console.log(`${receiver.name} is not in the "miembro" role. It's role is ${receiver.role}`);
+                    }
+                    // TODO: Create an option to send witouth media attached.
+                    
+                }
+            } else {
+                msg.reply('No media there');
+    
+            }
+        }
+    }
+    if (msg.body === '!estado') {
         // Send a new message as a reply to the current one
-        msg.reply('pong');
+        msg.reply('Bot Activo');
 
     } else if (msg.body === '!ping') {
         // Send a new message to the same chat
@@ -122,7 +250,8 @@ client.on('message', async msg => {
             *Connection info*
             User name: ${info.pushname}
             My number: ${info.me.user}
-            Platform: ${info.platform}
+            Platform: ${info.platform} 
+            Pushname: ${info.pushname}
             WhatsApp version: ${info.phone.wa_version}
         `);
     } else if (msg.body === '!mediainfo' && msg.hasMedia) {
@@ -201,34 +330,7 @@ client.on('message', async msg => {
             const quotedMsg = await msg.getQuotedMessage();
             client.interface.openChatWindowAt(quotedMsg.id._serialized);
         }
-    }
-    /*********************************************** */
-    else if (msg.body.startsWith('!send-lideres ')) {
-        const quotedMsg = await msg.getQuotedMessage();
-        if (quotedMsg.hasMedia) {
-            const attachmentData = await quotedMsg.downloadMedia();
-
-            originalMessage = msg.body.slice(14);
-
-            for (const receiver of RECEIVERS) {
-                if(receiver.role = 'lider'){
-                    console.log('showing this receiver.. '+receiver.nickname);
-                    let number = receiver.phone;
-                    let message = originalMessage.replace('%NICKNAME%',receiver.nickname);
-                    number = number.includes('@c.us') ? number : `${number}@c.us`;
-                    let chat = await msg.getChat();
-                    chat.sendSeen();
-                    console.log(`Sending message to ${receiver.name} for being in the role of ${receiver.role}`);
-                    client.sendMessage(number, attachmentData, {caption: message}); 
-                }
-                // TODO: Create option to send witouth media attached.
-                
-            }
-        } else {
-            msg.reply('No media there');
-
-        }
-    }
+    }  
 });
 
 client.on('message_create', (msg) => {
