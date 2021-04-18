@@ -13,6 +13,7 @@ if (fs.existsSync(SESSION_FILE_PATH)) {
 
 let receivers = {}
 
+// Load receivers from an API
 async function getReceivers(){
     try {
         const response = await fetch(process.env.GSHEET_EXPRESS_API);
@@ -54,16 +55,17 @@ client.on('auth_failure', msg => {
 
 client.on('ready', () => {
     console.log('READY');
+
 });
 
 client.on('message', async msg => {
     console.log('MESSAGE RECEIVED', msg);
+    // Only allowing comands from one group.
     if(msg.from.endsWith(ALLOWED_SENDER_GROUP)){
         console.log('Enviado desde grupo BOT');
         if (msg.body === '!cargar-destinatarios') {
             try {
                 const chat = await msg.getChat();
-                // simulates typing in the chat
                 chat.sendStateTyping();
                 receivers = await getReceivers();
                 var res = receivers.filter(val => {
@@ -72,286 +74,95 @@ client.on('message', async msg => {
                 console.log(`Cantidad de destinatarios ${res.length}`)
                 msg.reply(`Se cargaron ${res.length} destinatarios`);
                 chat.clearState();
+                
             } catch (error) {
                 msg.reply(`*HA OCURRIDO UN ERROR EN EL BOT*`);
             }
-            
-        } else if (msg.body === '!borrar-destinatarios') {           
+        } else if (msg.body === '!borrar-destinatarios') {
             const chat = await msg.getChat();
-            // simulates typing in the chat
             chat.sendStateTyping();
+            // simulates typing in the chat
             receivers = {};
             msg.reply(`Se han eliminado los destinatarios cargados.`);
             chat.clearState();
             
         } else if (msg.body.startsWith('!enviar-destinatarios ')) {
-            const quotedMsg = await msg.getQuotedMessage();
-            if (quotedMsg.hasMedia) {
-                const attachmentData = await quotedMsg.downloadMedia();
-    
-                originalMessage = msg.body.slice(22);
-    
-                for (const receiver of receivers) {
+            try {
+                const chat = await msg.getChat();
+                chat.sendStateTyping();
+                // simulates typing in the chat
+                receivers = await getReceivers();
+                var res = receivers.filter(val => {
+                    return val.phone
+                })
+                console.log(`Cantidad de destinatarios ${res.length}`)
 
-                    console.log('showing this receiver.. '+receiver.nickname);
-                    let number = receiver.phone;
-                    let message = originalMessage.replace('%NICKNAME%',receiver.nickname);
-                    message = message.replace('%NAME%', receiver.name);
-                    number = number.includes('@c.us') ? number : `${number}@c.us`;
-                    
-                    let chat = await msg.getChat();
-                    chat.sendSeen();
-                    console.log(`Sending message to ${receiver.name} for being in the role of ${receiver.role}`);
-                    client.sendMessage(number, attachmentData, {caption: message}); 
-                    
-                    // TODO: Create option to send witouth media attached.
-                    
+                // Setting up a limit of 100 receivers to avoid being blocked by whatsapp
+                if(res.length <= 100 ){
+                    const quotedMsg = await msg.getQuotedMessage();
+
+                    let attachmentData;
+                    (quotedMsg && quotedMsg.hasMedia) ?  attachmentData = await quotedMsg.downloadMedia() : ''
+                    originalMessage = msg.body.slice(22);
+                    let counter = 0;
+                    for (const receiver of receivers) {
+                        console.log('showing this receiver.. '+receiver.nickname);
+                        let number = receiver.phone;
+                        let message = originalMessage.replace('%APODO%',receiver.nickname);
+                        message = message.replace('%NOMBRE%', receiver.name);
+                        number = number.includes('@c.us') ? number : `${number}@c.us`;
+                        let chat = await msg.getChat();
+                        chat.sendSeen();
+                        console.log(`Sending message to ${receiver.name}`);
+                        (quotedMsg && quotedMsg.hasMedia) 
+                            ? client.sendMessage(number, attachmentData, {caption: message})
+                            : client.sendMessage(number, message); 
+                        counter++;                            
+                    }
+                    msg.reply(`Se enviaron mensajes a ${counter} destinatarios`);  
+                } else {
+                    msg.reply(`*HA OCURRIDO UN ERROR EN EL BOT* - Demasiados destinatarios. No se puede enviar a mas de 100, se cargaron ${res.length} destinatarios`);  
                 }
-            } else {
-                msg.reply('No media there');
-    
+                chat.clearState();
+
+            } catch (error) {
+                msg.reply(`*HA OCURRIDO UN ERROR EN EL BOT* ${error}`);
+                console.log(error);
             }
             
-        } 
-        /*********************************************** */
-        else if (msg.body.startsWith('!send-lideres ')) {
-            const quotedMsg = await msg.getQuotedMessage();
-            if (quotedMsg.hasMedia) {
-                const attachmentData = await quotedMsg.downloadMedia();
-    
-                originalMessage = msg.body.slice(14);
-    
-                for (const receiver of receivers) {
-                    if(receiver.role === 'lider'){
-                        console.log('showing this receiver.. '+receiver.nickname);
-                        let number = receiver.phone;
-                        let message = originalMessage.replace('%NICKNAME%',receiver.nickname);
-                        message = message.replace('%NAME%', receiver.name);
-                        number = number.includes('@c.us') ? number : `${number}@c.us`;
-                        let chat = await msg.getChat();
-                        chat.sendSeen();
-                        console.log(`Sending message to ${receiver.name} for being in the role of ${receiver.role}`);
-                        client.sendMessage(number, attachmentData, {caption: message}); 
-                    } else {
-                        console.log(`${receiver.name} is not in the "lider" role. It's role is ${receiver.role}`);
-                    }
-                    // TODO: Create an option to send witouth media attached.
-                    
+        } else if (msg.body === '!estado') {
+            try {
+                const chat = await msg.getChat();
+                chat.sendStateTyping();
+                // simulates typing in the chat
+                receivers = await getReceivers();
+                var res = receivers.filter(val => {
+                    return val.phone
+                })
+                console.log(`Cantidad de destinatarios ${res.length}`)
+
+                if(Object.keys(receivers).length > 0 ){
+                    var names = receivers.map(function (receiver) {
+                        return receiver.name; 
+                    });
+            
+                    // Send a new message as a reply to the current one
+                    msg.reply('*BOT ACTIVO* - ' + res.length + ' Destinatarios:\n' +'_'+ JSON.stringify(names)+'_');
+                    console.log(JSON.stringify(receivers));
+                } else {
+                    msg.reply(`*BOT ACTIVO* - No hay destinatarios`);
                 }
-            } else {
-                msg.reply('No media there');
-    
-            }
-        }else if (msg.body.startsWith('!send-miembros ')) {
-            const quotedMsg = await msg.getQuotedMessage();
-            if (quotedMsg.hasMedia) {
-                const attachmentData = await quotedMsg.downloadMedia();
-    
-                originalMessage = msg.body.slice(15);
-    
-                for (const receiver of receivers) {
-                    if(receiver.role === 'miembro'){
-                        console.log('showing this receiver.. '+receiver.nickname);
-                        let number = receiver.phone;
-                        let message = originalMessage.replace('%NICKNAME%',receiver.nickname);
-                        message = message.replace('%NAME%', receiver.name);
-                        number = number.includes('@c.us') ? number : `${number}@c.us`;
-                        let chat = await msg.getChat();
-                        chat.sendSeen();
-                        console.log(`Sending message to ${receiver.name} for being in the role of ${receiver.role}`);
-                        client.sendMessage(number, attachmentData, {caption: message}); 
-                    } else {
-                        console.log(`${receiver.name} is not in the "miembro" role. It's role is ${receiver.role}`);
-                    }
-                    // TODO: Create an option to send witouth media attached.
-                    
-                }
-            } else {
-                msg.reply('No media there');
-    
+                chat.clearState();
+            } catch (error) {
+                msg.reply(`*HA OCURRIDO UN ERROR EN EL BOT* ${error}`);
+                console.log(error);
             }
         }
     }
-    if (msg.body === '!estado') {
-        // Send a new message as a reply to the current one
-        msg.reply('Bot Activo');
-
-    } else if (msg.body === '!ping') {
-        // Send a new message to the same chat
-        client.sendMessage(msg.from, 'pong');
-
-    } else if (msg.body.startsWith('!sendto ')) {
-        // Direct send a new message to specific id
-        let number = msg.body.split(' ')[1];
-        let messageIndex = msg.body.indexOf(number) + number.length;
-        let message = msg.body.slice(messageIndex, msg.body.length);
-        number = number.includes('@c.us') ? number : `${number}@c.us`;
-        let chat = await msg.getChat();
-        chat.sendSeen();
-        client.sendMessage(number, message);
-
-    } else if (msg.body.startsWith('!subject ')) {
-        // Change the group subject
-        let chat = await msg.getChat();
-        if (chat.isGroup) {
-            let newSubject = msg.body.slice(9);
-            chat.setSubject(newSubject);
-        } else {
-            msg.reply('This command can only be used in a group!');
-        }
-    } else if (msg.body.startsWith('!echo ')) {
-        // Replies with the same message
-        msg.reply(msg.body.slice(6));
-    } else if (msg.body.startsWith('!desc ')) {
-        // Change the group description
-        let chat = await msg.getChat();
-        if (chat.isGroup) {
-            let newDescription = msg.body.slice(6);
-            chat.setDescription(newDescription);
-        } else {
-            msg.reply('This command can only be used in a group!');
-        }
-    } else if (msg.body === '!leave') {
-        // Leave the group
-        let chat = await msg.getChat();
-        if (chat.isGroup) {
-            chat.leave();
-        } else {
-            msg.reply('This command can only be used in a group!');
-        }
-    } else if (msg.body.startsWith('!join ')) {
-        const inviteCode = msg.body.split(' ')[1];
-        try {
-            await client.acceptInvite(inviteCode);
-            msg.reply('Joined the group!');
-        } catch (e) {
-            msg.reply('That invite code seems to be invalid.');
-        }
-    } else if (msg.body === '!groupinfo') {
-        let chat = await msg.getChat();
-        if (chat.isGroup) {
-            msg.reply(`
-                *Group Details*
-                Name: ${chat.name}
-                Description: ${chat.description}
-                Created At: ${chat.createdAt.toString()}
-                Created By: ${chat.owner.user}
-                Participant count: ${chat.participants.length}
-            `);
-        } else {
-            msg.reply('This command can only be used in a group!');
-        }
-    } else if (msg.body === '!chats') {
-        const chats = await client.getChats();
-        client.sendMessage(msg.from, `The bot has ${chats.length} chats open.`);
-    } else if (msg.body === '!info') {
-        let info = client.info;
-        client.sendMessage(msg.from, `
-            *Connection info*
-            User name: ${info.pushname}
-            My number: ${info.me.user}
-            Platform: ${info.platform} 
-            Pushname: ${info.pushname}
-            WhatsApp version: ${info.phone.wa_version}
-        `);
-    } else if (msg.body === '!mediainfo' && msg.hasMedia) {
-        const attachmentData = await msg.downloadMedia();
-        msg.reply(`
-            *Media info*
-            MimeType: ${attachmentData.mimetype}
-            Filename: ${attachmentData.filename}
-            Data (length): ${attachmentData.data.length}
-        `);
-    } else if (msg.body === '!quoteinfo' && msg.hasQuotedMsg) {
-        const quotedMsg = await msg.getQuotedMessage();
-
-        quotedMsg.reply(`
-            ID: ${quotedMsg.id._serialized}
-            Type: ${quotedMsg.type}
-            Author: ${quotedMsg.author || quotedMsg.from}
-            Timestamp: ${quotedMsg.timestamp}
-            Has Media? ${quotedMsg.hasMedia}
-        `);
-    } else if (msg.body === '!resendmedia' && msg.hasQuotedMsg) {
-        const quotedMsg = await msg.getQuotedMessage();
-        if (quotedMsg.hasMedia) {
-            const attachmentData = await quotedMsg.downloadMedia();
-            client.sendMessage(msg.from, attachmentData, { caption: 'Here\'s your requested media.' });
-        }
-    } else if (msg.body === '!location') {
-        msg.reply(new Location(37.422, -122.084, 'Googleplex\nGoogle Headquarters'));
-    } else if (msg.location) {
-        msg.reply(msg.location);
-    } else if (msg.body.startsWith('!status ')) {
-        const newStatus = msg.body.split(' ')[1];
-        await client.setStatus(newStatus);
-        msg.reply(`Status was updated to *${newStatus}*`);
-    } else if (msg.body === '!mention') {
-        const contact = await msg.getContact();
-        const chat = await msg.getChat();
-        chat.sendMessage(`Hi @${contact.number}!`, {
-            mentions: [contact]
-        });
-    } else if (msg.body === '!delete') {
-        if (msg.hasQuotedMsg) {
-            const quotedMsg = await msg.getQuotedMessage();
-            if (quotedMsg.fromMe) {
-                quotedMsg.delete(true);
-            } else {
-                msg.reply('I can only delete my own messages');
-            }
-        }
-    } else if (msg.body === '!pin') {
-        const chat = await msg.getChat();
-        await chat.pin();
-    } else if (msg.body === '!archive') {
-        const chat = await msg.getChat();
-        await chat.archive();
-    } else if (msg.body === '!mute') {
-        const chat = await msg.getChat();
-        // mute the chat for 20 seconds
-        const unmuteDate = new Date();
-        unmuteDate.setSeconds(unmuteDate.getSeconds() + 20);
-        await chat.mute(unmuteDate);
-    } else if (msg.body === '!typing') {
-        const chat = await msg.getChat();
-        // simulates typing in the chat
-        chat.sendStateTyping();
-    } else if (msg.body === '!recording') {
-        const chat = await msg.getChat();
-        // simulates recording audio in the chat
-        chat.sendStateRecording();
-    } else if (msg.body === '!clearstate') {
-        const chat = await msg.getChat();
-        // stops typing or recording in the chat
-        chat.clearState();
-    } else if (msg.body === 'jumpto') {
-        if (msg.hasQuotedMsg) {
-            const quotedMsg = await msg.getQuotedMessage();
-            client.interface.openChatWindowAt(quotedMsg.id._serialized);
-        }
-    }  
+ 
 });
 
-client.on('message_create', (msg) => {
-    // Fired on all message creations, including your own
-    if (msg.fromMe) {
-        // do stuff here
-    }
-});
-
-client.on('message_revoke_everyone', async (after, before) => {
-    // Fired whenever a message is deleted by anyone (including you)
-    console.log(after); // message after it was deleted.
-    if (before) {
-        console.log(before); // message before it was deleted.
-    }
-});
-
-client.on('message_revoke_me', async (msg) => {
-    // Fired whenever a message is only deleted in your own view.
-    console.log(msg.body); // message before it was deleted.
-});
+let acknowledges = []
 
 client.on('message_ack', (msg, ack) => {
     /*
@@ -364,26 +175,34 @@ client.on('message_ack', (msg, ack) => {
         ACK_PLAYED: 4
     */
 
-    if(ack == 3) {
-        // The message was read
+    
+
+    if(ack == -1) {
+        let status = {"estado":"ACK_ERROR" ,"remote": msg.id.remote}
+        console.log(`Acnowledge -> ${JSON.stringify(status)}`)
+        acknowledges.push(status);
     }
-});
-
-client.on('group_join', (notification) => {
-    // User has joined or been added to the group.
-    console.log('join', notification);
-    notification.reply('User joined.');
-});
-
-client.on('group_leave', (notification) => {
-    // User has left or been kicked from the group.
-    console.log('leave', notification);
-    notification.reply('User left.');
-});
-
-client.on('group_update', (notification) => {
-    // Group picture, subject or description has been updated.
-    console.log('update', notification);
+    if(ack == 0) {
+        let status = {"estado":"ACK_PENDING" ,"remote": msg.id.remote}
+        console.log(`Acnowledge -> ${JSON.stringify(status)}`)
+        acknowledges.push(status);
+    }
+    if(ack == 1) {
+        let status = {"estado":"ACK_SERVER" ,"remote": msg.id.remote}
+        console.log(`Acnowledge -> ${JSON.stringify(status)}`)
+        acknowledges.push(status);    }
+    if(ack == 2) {
+        let status = {"estado":"ACK_DEVICE" ,"remote": msg.id.remote}
+        console.log(`Acnowledge -> ${JSON.stringify(status)}`)
+        acknowledges.push(status);    }
+    if(ack == 3) {
+        let status = {"estado":"ACK_READ" ,"remote": msg.id.remote}
+        console.log(`Acnowledge -> ${JSON.stringify(status)}`)
+        acknowledges.push(status);    }
+    if(ack == 4) {
+        let status = {"estado":"ACK_PLAYED" ,"remote": msg.id.remote}
+        console.log(`Acnowledge -> ${JSON.stringify(status)}`)
+        acknowledges.push(status);    }
 });
 
 client.on('change_battery', (batteryInfo) => {
