@@ -33,7 +33,7 @@ async function getReceivers(){
     }
 }
 
-const client = new Client({ puppeteer: { headless: true }, session: sessionCfg });
+const client = new Client({ puppeteer: { headless: true, args: ['--no-sandbox'] }, session: sessionCfg });
 // You can use an existing session and avoid scanning a QR code by adding a "session" object to the client options.
 // This object must include WABrowserId, WASecretBundle, WAToken1 and WAToken2.
 
