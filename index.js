@@ -3,8 +3,12 @@ const fs = require('fs');
 const fetch = require('node-fetch');
 const { Client } = require('whatsapp-web.js');
 
-const ALLOWED_SENDER_GROUP = process.env.ALLOWED_SENDER_GROUP;
+
+const CONFIG = require('./config');
+
+const ALLOWED_SENDER_GROUP = CONFIG.ALLOWED_SENDER_GROUP;
 const SESSION_FILE_PATH = './session.json';
+const MAX_ALLOWED_MSG = 200;
 
 let sessionCfg;
 if (fs.existsSync(SESSION_FILE_PATH)) {
@@ -16,7 +20,9 @@ let receivers = {}
 // Load receivers from an API
 async function getReceivers(){
     try {
-        const response = await fetch(process.env.GSHEET_EXPRESS_API);
+        const response = await fetch(CONFIG.GSHEET_EXPRESS_API, {
+            headers: {'Authorization': CONFIG.WA_BOT_SECRET}
+        });
         const json = await response.json();
         console.log(`Haciendo fetch a gsheet-extraction-microservice para obtener los remitentes`)
         console.log(`Datos de Google Sheets: ${JSON.stringify( json )}`);
@@ -97,8 +103,8 @@ client.on('message', async msg => {
                 })
                 console.log(`Cantidad de destinatarios ${res.length}`)
 
-                // Setting up a limit of 100 receivers to avoid being blocked by whatsapp
-                if(res.length <= 100 ){
+                // Setting up a limit of MAX_ALLOWED_MSG receivers to avoid being blocked by whatsapp
+                if(res.length <= MAX_ALLOWED_MSG ){
                     const quotedMsg = await msg.getQuotedMessage();
 
                     let attachmentData;
@@ -121,7 +127,7 @@ client.on('message', async msg => {
                     }
                     msg.reply(`Se enviaron mensajes a ${counter} destinatarios`);  
                 } else {
-                    msg.reply(`*HA OCURRIDO UN ERROR EN EL BOT* - Demasiados destinatarios. No se puede enviar a mas de 100, se cargaron ${res.length} destinatarios`);  
+                    msg.reply(`*HA OCURRIDO UN ERROR EN EL BOT* - Demasiados destinatarios. No se puede enviar a mas de ${MAX_ALLOWED_MSG}, se cargaron ${res.length} destinatarios`);  
                 }
                 chat.clearState();
 
@@ -175,32 +181,30 @@ client.on('message_ack', (msg, ack) => {
         ACK_PLAYED: 4
     */
 
-    
-
     if(ack == -1) {
-        let status = {"estado":"ACK_ERROR" ,"remote": msg.id.remote}
+        let status = {"ack":"ERROR", " msg": msg.id}
         console.log(`Acnowledge -> ${JSON.stringify(status)}`)
         acknowledges.push(status);
     }
     if(ack == 0) {
-        let status = {"estado":"ACK_PENDING" ,"remote": msg.id.remote}
+        let status = {"ack":"PENDING", "msg": msg.id}
         console.log(`Acnowledge -> ${JSON.stringify(status)}`)
         acknowledges.push(status);
     }
     if(ack == 1) {
-        let status = {"estado":"ACK_SERVER" ,"remote": msg.id.remote}
+        let status = {"ack":"SERVER", "msg": msg.id}
         console.log(`Acnowledge -> ${JSON.stringify(status)}`)
         acknowledges.push(status);    }
     if(ack == 2) {
-        let status = {"estado":"ACK_DEVICE" ,"remote": msg.id.remote}
+        let status = {"ack":"DEVICE", "msg": msg.id}
         console.log(`Acnowledge -> ${JSON.stringify(status)}`)
         acknowledges.push(status);    }
     if(ack == 3) {
-        let status = {"estado":"ACK_READ" ,"remote": msg.id.remote}
+        let status = {"ack":"READ", "msg": msg.id}
         console.log(`Acnowledge -> ${JSON.stringify(status)}`)
         acknowledges.push(status);    }
     if(ack == 4) {
-        let status = {"estado":"ACK_PLAYED" ,"remote": msg.id.remote}
+        let status = {"ack":"PLAYED", "msg": msg.id}
         console.log(`Acnowledge -> ${JSON.stringify(status)}`)
         acknowledges.push(status);    }
 });

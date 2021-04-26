@@ -1,0 +1,5 @@
+export const CONFIG = {
+    GSHEET_EXPRESS_API: '',
+    ALLOWED_SENDER_GROUP: '',
+    WA_BOT_SECRET: ''
+}

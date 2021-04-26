@@ -134,3 +134,4 @@ temp/
 # Project files to exclude
 session*.json
 receivers.js
+config.js
