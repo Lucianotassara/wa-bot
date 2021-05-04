@@ -121,10 +121,7 @@ client.on('message', async msg => {
                         chat.sendSeen();
                         console.log(`Sending message to ${receiver.name}`);
                         (quotedMsg && quotedMsg.hasMedia) 
-                            ? client.sendMessage(number, attachmentData, (quotedMsg.type==='audio') 
-                                ? {sendAudioAsVoice: true, caption: message} 
-                                : {caption: message} 
-                            )
+                            ? client.sendMessage(number, attachmentData, (quotedMsg.type==='audio') ? {sendAudioAsVoice: true, caption: message} : {caption: message})
                             : client.sendMessage(number, message); 
                         counter++;                            
                     }
