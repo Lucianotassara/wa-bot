@@ -4,7 +4,7 @@ const fetch = require('node-fetch');
 const { Client } = require('whatsapp-web.js');
 
 
-const CONFIG = require('./config');
+const CONFIG = require('./config.json');
 
 const ALLOWED_SENDER_GROUP = CONFIG.ALLOWED_SENDER_GROUP;
 const SESSION_FILE_PATH = './session.json';
@@ -92,7 +92,7 @@ client.on('message', async msg => {
             msg.reply(`Se han eliminado los destinatarios cargados.`);
             chat.clearState();
             
-        } else if (msg.body.startsWith('!enviar-destinatarios ')) {
+        } else if (msg.body.startsWith('!enviar-destinatarios')) {
             try {
                 const chat = await msg.getChat();
                 chat.sendStateTyping();
@@ -106,7 +106,7 @@ client.on('message', async msg => {
                 // Setting up a limit of MAX_ALLOWED_MSG receivers to avoid being blocked by whatsapp
                 if(res.length <= MAX_ALLOWED_MSG ){
                     const quotedMsg = await msg.getQuotedMessage();
-
+                    console.log('Showing quoted message',quotedMsg);
                     let attachmentData;
                     (quotedMsg && quotedMsg.hasMedia) ?  attachmentData = await quotedMsg.downloadMedia() : ''
                     originalMessage = msg.body.slice(22);
@@ -121,7 +121,10 @@ client.on('message', async msg => {
                         chat.sendSeen();
                         console.log(`Sending message to ${receiver.name}`);
                         (quotedMsg && quotedMsg.hasMedia) 
-                            ? client.sendMessage(number, attachmentData, {caption: message})
+                            ? client.sendMessage(number, attachmentData, (quotedMsg.type==='audio') 
+                                ? {sendAudioAsVoice: true, caption: message} 
+                                : {caption: message} 
+                            )
                             : client.sendMessage(number, message); 
                         counter++;                            
                     }
