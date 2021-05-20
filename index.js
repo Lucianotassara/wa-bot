@@ -3,11 +3,10 @@ const fs = require('fs');
 const fetch = require('node-fetch');
 const { Client } = require('whatsapp-web.js');
 
-
 const CONFIG = require('./config.json');
 
 const ALLOWED_SENDER_GROUP = CONFIG.ALLOWED_SENDER_GROUP;
-const SESSION_FILE_PATH = './session.json';
+const SESSION_FILE_PATH = './session.json'; 
 const MAX_ALLOWED_MSG = 200;
 
 let sessionCfg;
@@ -33,7 +32,20 @@ async function getReceivers(){
     }
 }
 
-const client = new Client({ puppeteer: { headless: true, args: ['--no-sandbox'] }, session: sessionCfg });
+
+// const client = new Client({ puppeteer: { headless: true, args: ['--no-sandbox'] }, session: sessionCfg });
+let client; 
+console.log(`AMBIENTE -----> ${process.env.ENV}`);
+    if(process.env.ENV === 'raspi'){
+        client = new Client({ puppeteer: { headless: true, executablePath: 'chromium-browser', args: ['--no-sandbox'] }, session: sessionCfg });
+        
+    } 
+    if(process.env.ENV==='desa' || process.env.ENV==='prod' ){
+        client = new Client({ puppeteer: { headless: true, args: ['--no-sandbox'] }, session: sessionCfg });
+
+    }
+
+
 // You can use an existing session and avoid scanning a QR code by adding a "session" object to the client options.
 // This object must include WABrowserId, WASecretBundle, WAToken1 and WAToken2.
 
