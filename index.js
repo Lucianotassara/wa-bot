@@ -32,7 +32,6 @@ async function getReceivers(){
     }
 }
 
-
 // const client = new Client({ puppeteer: { headless: true, args: ['--no-sandbox'] }, session: sessionCfg });
 let client; 
 console.log(`AMBIENTE -----> ${process.env.ENV}`);
