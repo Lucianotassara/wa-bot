@@ -1,7 +1,7 @@
 require('dotenv').config()
 const fs = require('fs');
 const fetch = require('node-fetch');
-const { Client } = require('whatsapp-web.js');
+const { Client, MessageAck } = require('whatsapp-web.js');
 
 const CONFIG = require('./config.json');
 
@@ -76,7 +76,7 @@ client.on('ready', () => {
 });
 
 client.on('message', async msg => {
-    console.log('MESSAGE RECEIVED', msg);
+    (msg.id.remote === 'status@broadcast') ? '' : console.log('<<<<< RECIBIDO: ', msg);
     // Only allowing comands from one group.
     if(msg.from.endsWith(ALLOWED_SENDER_GROUP)){
         console.log('Enviado desde grupo BOT');
@@ -131,9 +131,11 @@ client.on('message', async msg => {
                         let chat = await msg.getChat();
                         chat.sendSeen();
                         console.log(`Sending message to ${receiver.name}`);
+                        let m
                         (quotedMsg && quotedMsg.hasMedia) 
-                            ? client.sendMessage(number, attachmentData, (quotedMsg.type==='audio') ? {sendAudioAsVoice: true, caption: message} : {caption: message})
-                            : client.sendMessage(number, message); 
+                            ? m = client.sendMessage(number, attachmentData, (quotedMsg.type==='audio') ? {sendAudioAsVoice: true, caption: message} : {caption: message})
+                            : m = client.sendMessage(number, message); 
+                        console.log(`>>>>> ENVIADO: `,await m)
                         counter++;                            
                     }
                     msg.reply(`Se enviaron mensajes a ${counter} destinatarios`);  
@@ -174,6 +176,52 @@ client.on('message', async msg => {
                 msg.reply(`*HA OCURRIDO UN ERROR EN EL BOT* ${error}`);
                 console.log(error);
             }
+        } else if (msg.body === '!contactos') {
+            try {
+                const chat = await msg.getChat();
+                chat.sendStateTyping();
+                // simulates typing in the chat
+                
+                // let contact = await client.getContactById("5491134005591@c.us");
+                // let name = contact.name || contact.pushname;
+
+                receivers = await getReceivers();
+                var res = receivers.filter(val => {
+                    return val.phone
+                })
+                console.log(`Cantidad de destinatarios ${res.length}`)
+
+                originalMessage = msg.body.slice(22);
+                let counter = 0;
+                for (const receiver of receivers) {
+                    console.log('showing this receiver.. '+receiver.nickname);
+                    let number = receiver.phone;
+                    number = number.includes('@c.us') ? number : `${number}@c.us`;
+                    let contact 
+                    try {
+                        contact = await client.getContactById(number);
+                        if (contact !== undefined ) {
+                            msg.reply(`*Nombre: ${contact.name}*\n`+
+                            `   Numero: ${contact.number}\n` +
+                            `   Pushname: ${contact.pushname}\n` +
+                            `   ShortName: ${contact.shortname}`);
+                                console.log(`Showing contact: `,contact);
+                        }else{
+                            // msg.reply(`*Contacto no agendado...${number}*`)
+                        }
+                    } catch (error) {
+                        console.log(error)
+                        msg.reply(`*Contacto no agendado...${number}*`)
+                    }
+                    counter++;                           
+                }
+                // msg.reply(`Se consultaron ${counter} destinatarios`);  
+              
+                chat.clearState();
+            } catch (error) {
+                msg.reply(`*HA OCURRIDO UN ERROR EN EL BOT* ${error}`);
+                console.log(error);
+            }
         }
     }
  
@@ -191,6 +239,8 @@ client.on('message_ack', (msg, ack) => {
         ACK_READ: 3
         ACK_PLAYED: 4
     */
+
+        //TODO: MongoDB: findOneAndUpdate, search for message sent and update the ack value.
 
     if(ack == -1) {
         let status = {"ack":"ERROR", " msg": msg.id}
@@ -228,4 +278,17 @@ client.on('change_battery', (batteryInfo) => {
 
 client.on('disconnected', (reason) => {
     console.log('Client was logged out', reason);
+});
+
+
+client.on('message_create', (msg) => {
+    // Fired on all message creations, including your own
+    if (msg.fromMe) {        
+        // TODO: MongoDB, save the message here
+        // console.log(message);
+        
+
+        
+
+    }
 });
