@@ -11,6 +11,7 @@
   "license": "ISC",
   "dependencies": {
     "dotenv": "^8.2.0",
+    "mongoose": "^5.12.13",
     "node-fecth": "0.0.1-security",
     "nodemon": "^2.0.7",
     "whatsapp-web.js": "^1.12.5"

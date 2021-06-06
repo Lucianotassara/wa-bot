@@ -50,6 +50,64 @@ console.log(`AMBIENTE -----> ${process.env.ENV}`);
 
 client.initialize();
 
+/************************************************************************** */
+var mongoose = require('mongoose');
+mongoose.connect(process.env.WA_BOT_MONGO_URI || 'mongodb://localhost/wa-bot', {useNewUrlParser: true});
+mongoose.set('debug', true);
+
+var Schema = mongoose.Schema;
+
+let RemoteSchema = mongoose.Schema({
+    server: {type: String},
+    user: {type: String},
+    _serialized: {type: String}
+  });
+  
+let IdSchema = mongoose.Schema({
+    fromMe: {type: Boolean},
+    remote: {
+        type: RemoteSchema,
+        required: true
+    },
+    id: {type: String},
+    _serialized: {type: String}
+    });
+
+let MessageSchema = new Schema({
+    mediaKey: {type: String},
+    id: {
+        type: IdSchema,
+        required: true
+    },
+    ack: {type: Number},
+    hasMedia: {type: Boolean},
+    body: {type: String},
+    type: {type: String},
+    timestamp: {type: Number},
+    from: {type: String},
+    to: {type: String},
+    author: {type: String},
+    isForwarded: {type: Boolean},
+    isStatus: {type: Boolean},
+    isStarred: {type: Boolean},
+    broadcast: {type: String},
+    fromMe: {type: Boolean},
+    hasQuotedMsg: {type: Boolean},
+    location: {type: String},
+    vCards: [],
+    mentionedIds: [],
+    links: {type: String},
+    created: {
+        type: Date,
+        default: Date.now
+    }
+});
+
+const MessageModel = mongoose.model("Message", MessageSchema);
+/*************************************************************************** */
+
+
+
 client.on('qr', (qr) => {
     // NOTE: This event will not be fired if a session is specified.
     console.log('QR RECEIVED', qr);
@@ -76,34 +134,9 @@ client.on('ready', () => {
 });
 
 client.on('message', async msg => {
-    (msg.id.remote === 'status@broadcast') ? '' : console.log('<<<<< RECIBIDO: ', msg);
-    // Only allowing comands from one group.
-    if(msg.from.endsWith(ALLOWED_SENDER_GROUP)){
-        console.log('Enviado desde grupo BOT');
-        if (msg.body === '!cargar-destinatarios') {
-            try {
-                const chat = await msg.getChat();
-                chat.sendStateTyping();
-                receivers = await getReceivers();
-                var res = receivers.filter(val => {
-                    return val.phone
-                })
-                console.log(`Cantidad de destinatarios ${res.length}`)
-                msg.reply(`Se cargaron ${res.length} destinatarios`);
-                chat.clearState();
-                
-            } catch (error) {
-                msg.reply(`*HA OCURRIDO UN ERROR EN EL BOT*`);
-            }
-        } else if (msg.body === '!borrar-destinatarios') {
-            const chat = await msg.getChat();
-            chat.sendStateTyping();
-            // simulates typing in the chat
-            receivers = {};
-            msg.reply(`Se han eliminado los destinatarios cargados.`);
-            chat.clearState();
-            
-        } else if (msg.body.startsWith('!enviar-destinatarios')) {
+    // (msg.id.remote === 'status@broadcast') ? '' : console.log('<<<<< RECIBIDO: ', msg);
+    if(msg.from.endsWith(ALLOWED_SENDER_GROUP)){    // Only allowing comands from one group.
+        if (msg.body.startsWith('!enviar-destinatarios')) {
             try {
                 const chat = await msg.getChat();
                 chat.sendStateTyping();
@@ -133,9 +166,19 @@ client.on('message', async msg => {
                         console.log(`Sending message to ${receiver.name}`);
                         let m
                         (quotedMsg && quotedMsg.hasMedia) 
-                            ? m = client.sendMessage(number, attachmentData, (quotedMsg.type==='audio') ? {sendAudioAsVoice: true, caption: message} : {caption: message})
-                            : m = client.sendMessage(number, message); 
-                        console.log(`>>>>> ENVIADO: `,await m)
+                            ? m = client.sendMessage(number, attachmentData, (quotedMsg.type==='audio') 
+                                ? {sendAudioAsVoice: true, caption: message} 
+                                : {caption: message}).then(m => {
+                                    MessageModel.findOneAndUpdate({"id._serialized": m.id._serialized}, m, {upsert: true}, function (err, r) {
+                                        if(err) console.log('error: ',err)
+                                    })
+                                }) 
+                            : m = client.sendMessage(number, message).then(m => {
+                                MessageModel.findOneAndUpdate({"id._serialized": m.id._serialized}, m, {upsert: true}, function (err, r) {
+                                    if(err) console.log('error: ',err)
+                                })
+                            }); 
+                        // console.log(`>>>>> ENVIADO: `,await m)
                         counter++;                            
                     }
                     msg.reply(`Se enviaron mensajes a ${counter} destinatarios`);  
@@ -164,7 +207,6 @@ client.on('message', async msg => {
                     var names = receivers.map(function (receiver) {
                         return receiver.name; 
                     });
-            
                     // Send a new message as a reply to the current one
                     msg.reply('*BOT ACTIVO* - ' + res.length + ' Destinatarios:\n' +'_'+ JSON.stringify(names)+'_');
                     console.log(JSON.stringify(receivers));
@@ -180,18 +222,11 @@ client.on('message', async msg => {
             try {
                 const chat = await msg.getChat();
                 chat.sendStateTyping();
-                // simulates typing in the chat
-                
-                // let contact = await client.getContactById("5491134005591@c.us");
-                // let name = contact.name || contact.pushname;
-
                 receivers = await getReceivers();
                 var res = receivers.filter(val => {
                     return val.phone
                 })
                 console.log(`Cantidad de destinatarios ${res.length}`)
-
-                originalMessage = msg.body.slice(22);
                 let counter = 0;
                 for (const receiver of receivers) {
                     console.log('showing this receiver.. '+receiver.nickname);
@@ -227,8 +262,6 @@ client.on('message', async msg => {
  
 });
 
-let acknowledges = []
-
 client.on('message_ack', (msg, ack) => {
     /*
         == ACK VALUES ==
@@ -240,34 +273,12 @@ client.on('message_ack', (msg, ack) => {
         ACK_PLAYED: 4
     */
 
-        //TODO: MongoDB: findOneAndUpdate, search for message sent and update the ack value.
+    // Mongoose: findOneAndUpdate, search for message sent and update the ack value.
+        MessageModel.findOneAndUpdate({"id._serialized": msg.id._serialized}, 
+           { $set: { 'ack': ack}} , {upsert: false}, function (err, r) {
+        if(err) console.log('error: ',err)
+    })
 
-    if(ack == -1) {
-        let status = {"ack":"ERROR", " msg": msg.id}
-        console.log(`Acnowledge -> ${JSON.stringify(status)}`)
-        acknowledges.push(status);
-    }
-    if(ack == 0) {
-        let status = {"ack":"PENDING", "msg": msg.id}
-        console.log(`Acnowledge -> ${JSON.stringify(status)}`)
-        acknowledges.push(status);
-    }
-    if(ack == 1) {
-        let status = {"ack":"SERVER", "msg": msg.id}
-        console.log(`Acnowledge -> ${JSON.stringify(status)}`)
-        acknowledges.push(status);    }
-    if(ack == 2) {
-        let status = {"ack":"DEVICE", "msg": msg.id}
-        console.log(`Acnowledge -> ${JSON.stringify(status)}`)
-        acknowledges.push(status);    }
-    if(ack == 3) {
-        let status = {"ack":"READ", "msg": msg.id}
-        console.log(`Acnowledge -> ${JSON.stringify(status)}`)
-        acknowledges.push(status);    }
-    if(ack == 4) {
-        let status = {"ack":"PLAYED", "msg": msg.id}
-        console.log(`Acnowledge -> ${JSON.stringify(status)}`)
-        acknowledges.push(status);    }
 });
 
 client.on('change_battery', (batteryInfo) => {
