@@ -1,7 +1,7 @@
 module.exports = {
     apps : [{
       name: 'wa-bot',
-      script: 'nvm 14.15.5 run ./index.js',
+      script: 'nvm run 14.15.5 ./index.js',
   
       // Options reference: https://pm2.io/doc/en/runtime/reference/ecosystem-file/
       args: '--update-env',
