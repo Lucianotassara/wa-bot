@@ -2,8 +2,8 @@ module.exports = {
     apps : [{
       name: 'wa-bot',
       script: './index.js',
-      interpreter : 'node@14.15.5',
-  
+      exec_interpreter: '~/.nvm/versions/node/v14.15.5/bin/node',
+
       // Options reference: https://pm2.io/doc/en/runtime/reference/ecosystem-file/
       args: '--update-env',
       node_args: '',
