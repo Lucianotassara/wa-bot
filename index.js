@@ -1,14 +1,14 @@
 require('dotenv').config()
 import * as fs from 'fs';
-import { Client } from 'whatsapp-web.js';
 import mongoose from 'mongoose';
+import { Client } from 'whatsapp-web.js';
 import { Message } from './models'
-import  { getStatus, sendReceivers, processContacts } from './controller';
+import { getStatus, sendReceivers, processContacts } from './controller';
 
 const CONFIG = require('./utils/config.json');
 const SESSION_FILE_PATH = './utils/session.json'; 
 
-mongoose.connect(process.env.WA_BOT_MONGO_URI || 'mongodb://localhost/wa-bot', {useNewUrlParser: true});
+mongoose.connect(CONFIG.WA_BOT_MONGO_URI || 'mongodb://localhost/wa-bot', {useNewUrlParser: true});
 mongoose.set('debug', true);
 
 let sessionCfg;
