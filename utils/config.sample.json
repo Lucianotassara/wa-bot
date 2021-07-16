@@ -1,0 +1,14 @@
+{
+    "ENV_DEV": "",
+    "ENV_ACC": "",
+    "ENV_PRD": "",
+    "GSHEET_EXPRESS_API": "",
+    "ALLOWED_SENDER_GROUP": "",
+    "ADMIN_GROUP": "",
+    "WA_BOT_SECRET": "",
+    "MAX_ALLOWED_MSG": 200,
+    "GET_STATUS_CMD": "",
+    "SEND_MSG_CMD": "",
+    "CONTACTS_CMD": ""
+
+}
