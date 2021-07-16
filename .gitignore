@@ -135,3 +135,4 @@ temp/
 session.json.*
 session.json
 config.json
+config.json.*
