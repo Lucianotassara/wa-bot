@@ -1,4 +1,3 @@
-require('dotenv').config()
 import * as fs from 'fs';
 import mongoose from 'mongoose';
 import { Client } from 'whatsapp-web.js';
