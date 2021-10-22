@@ -3,6 +3,7 @@ import mongoose from 'mongoose';
 import { Client } from 'whatsapp-web.js';
 import { Message } from './models'
 import { getStatus, sendReceivers, processContacts } from './controller';
+const qrcode = require('qrcode-terminal');
 
 const CONFIG = require('./utils/config.json');
 const SESSION_FILE_PATH = './utils/session.json'; 
@@ -33,6 +34,7 @@ client.initialize();
 client.on('qr', (qr) => {
     // NOTE: This event will not be fired if a session is specified.
     console.log('QR RECEIVED', qr);
+    qrcode.generate(qr, {small: true});
 });
 
 client.on('authenticated', (session) => {
