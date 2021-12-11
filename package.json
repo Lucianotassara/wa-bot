@@ -4,9 +4,9 @@
   "description": "Whatsapp bot to send messages using whatsapp web and puppeteer js.",
   "main": "index.js",
   "scripts": {
-    "start": "node -r esm main.js",
-    "debug": "nodemon -r esm main.js --inspect",
-    "test": "nodemon -r esm --inspect-brk --inspect=0.0.0.0:9229 main.js"
+    "start": "node -r esm index.js",
+    "debug": "nodemon -r esm index.js --inspect",
+    "test": "nodemon -r esm --inspect-brk --inspect=0.0.0.0:9229 index.js"
   },
   "author": "Luciano Tassara",
   "license": "ISC",
@@ -34,6 +34,6 @@
     "qrcode-terminal": "^0.12.0",
     "readline": "^1.3.0",
     "request": "^2.88.2",
-    "whatsapp-web.js": "^1.15.3"
+    "whatsapp-web.js": "github:pedroslopez/whatsapp-web.js#multidevice"
   }
 }
