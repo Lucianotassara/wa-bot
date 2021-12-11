@@ -1,0 +1,18 @@
+<nav class="navbar navbar-expand-lg navbar-light bg-transparent">
+  
+  <ul class="navbar-nav mr-auto">
+    <li class="nav-item">
+      <!-- <a class="nav-link" href="/">Inicio</a> -->
+    </li>
+    <li class="nav-item">
+      <!-- <a class="nav-link" href="/about">Sobre mi</a> -->
+    </li>
+  </ul>
+
+  <span class="badge bg-success"><%=(data) ? 'Bot ACTIVO' : '' %></span>
+  <span class="badge bg-danger"><%=(!data) ? 'Bot APAGADO' : '' %></span>
+  
+  <a class="navbar-brand" href="/botStatus" style="font-size: 1rem; padding-left: 5px; color:#4a4a4ae6;"><%=(data) ? 'Mas detalles...' : '' %></a>
+
+  
+</nav>

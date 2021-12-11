@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <%- include('./head'); %>
+    </head>
+    <body class="container-fluid p-3 mb-2 bg-dark text-white .bg-gradient-light">
+        <div class="row  justify-content-md-center">
+            <div class="col perfil">
+                <img src="img/bot-ev-w.png" class="lucho">
+                <h1>Whatsapp Bot</h1>
+                <span class="badge bg-dark">Version 2.1</span>
+            </div>
+        </div>
+
+        <div class="row justify-content-center">
+            <div id="area-gris" class="col-10 jumbotron bg-secondary d-grid gap-2" style="padding-bottom: 12px">
+                <%- include('./header'); %>
+                <a class="btn btn-lg btn-dark btn-block" target="_blank" href="https://docs.google.com/spreadsheets/d/<%=spreadsheetId%>/edit#gid=0%>" role="button">  
+                    <i class="far fa-file-excel"></i>
+                    Listado destinatarios
+                </a>
+                <a class="btn btn-lg btn-dark btn-block" href="/restartBot%>" role="button">
+                    <i class="far fa-play-circle"></i>
+                    Encender Bot
+                </a>  
+                <a class="btn btn-lg btn-dark btn-block" href="/stopBot%>" role="button">
+                    <i class="far fa-stop-circle"></i>
+                    Apagar Bot
+                </a>
+                  
+            </div>
+        </div>
+
+        <footer>
+            
+        </footer>
+    </body>
+</html>

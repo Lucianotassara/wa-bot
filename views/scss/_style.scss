@@ -1,0 +1,33 @@
+.lucho {
+    display: inline-block;
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+.perfil{
+      text-align: center;
+      padding-bottom: 3%;
+  }
+
+.cosito{
+      margin-left: 2%;
+  }
+
+.badge{
+    background-color: black;
+    font-weight: 700;
+    font-size: smaller;
+}
+
+.button{
+    min-height: 5em;
+}
+
+#pinchecito{
+    transform: rotate(320deg);
+    color: darkgray;
+    margin-right: 2%;
+    
+}

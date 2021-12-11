@@ -136,3 +136,5 @@ session.json.*
 session.json
 config.json
 config.json.*
+ecosystem.config.js
+client_secret.json

@@ -51,13 +51,14 @@ export async function sendReceivers(client, msg){
                 console.log(`Sending message to ${receiver.name}`);
                 let m
                 (quotedMsg && quotedMsg.hasMedia) 
-                    ? m = client.sendMessage(number, attachmentData, (quotedMsg.type==='audio') 
-                        ? {sendAudioAsVoice: true, caption: message} 
-                        : {caption: message}).then(m => {
-                            Message.findOneAndUpdate({"id._serialized": m.id._serialized}, m, {upsert: true}, function (err, r) {
-                                if(err) console.log('error: ',err)
-                            })
-                        }) 
+                    ? m = client.sendMessage(number, attachmentData, 
+                        (quotedMsg.type==='audio' || quotedMsg.type==='ptt') 
+                            ? {sendAudioAsVoice: true, caption: message} 
+                            : {caption: message}).then(m => {
+                                Message.findOneAndUpdate({"id._serialized": m.id._serialized}, m, {upsert: true}, function (err, r) {
+                                    if(err) console.log('error: ',err)
+                                })
+                            }) 
                     : m = client.sendMessage(number, message).then(m => {
                         Message.findOneAndUpdate({"id._serialized": m.id._serialized}, m, {upsert: true}, function (err, r) {
                             if(err) console.log('error: ',err)
@@ -68,12 +69,12 @@ export async function sendReceivers(client, msg){
             }
             msg.reply(`Se enviaron mensajes a ${counter} destinatarios`);  
         } else {
-            msg.reply(`*💔💔 HA OCURRIDO UN ERROR EN EL BOT 💔💔* - Demasiados destinatarios. No se puede enviar a mas de ${CONFIG.MAX_ALLOWED_MSG}, se cargaron ${res.length} destinatarios`);  
+            msg.reply(`*💔💔 HA OCURRIDO UN ERROR EN EL BOT 💔💔*\n - Demasiados destinatarios. No se puede enviar a mas de ${CONFIG.MAX_ALLOWED_MSG}, se cargaron ${res.length} destinatarios`);  
         }
         chat.clearState();
 
     } catch (error) {
-        msg.reply(`*💔💔 HA OCURRIDO UN ERROR EN EL BOT 💔💔* ${error}`);
+        msg.reply(`*💔💔 HA OCURRIDO UN ERROR EN EL BOT 💔💔*\n ${error}`);
         console.log(error);
     }
 }
@@ -103,16 +104,17 @@ export async function getStatus(msg){
                 return receiver.name; 
             });
             // Send a new message as a reply to the current one
-            msg.reply('*🤖 BOT ACTIVO 🤖* - ' + res.length + ' Destinatarios:\n' +'_'+ JSON.stringify(names)+'_');
+            msg.reply('*🤖 BOT ACTIVO 🤖*\n ' + res.length + ' Destinatarios:\n' +'_'+ JSON.stringify(names)+'_');
             console.log(JSON.stringify(receivers));
+            chat.clearState();
             return true;
         } else {
             msg.reply(`*🤖 BOT ACTIVO 🤖* - No hay destinatarios`);
+            chat.clearState();
             return false;
         }
-        chat.clearState();
     } catch (error) {
-        msg.reply(`*💔💔 HA OCURRIDO UN ERROR EN EL BOT 💔💔* ${error}`);
+        msg.reply(`*💔💔 HA OCURRIDO UN ERROR EN EL BOT 💔💔*\n ${error}`);
         console.log(error);
     }
 }
@@ -159,7 +161,7 @@ export async function processContacts(client, msg){
       
         chat.clearState();
     } catch (error) {
-        msg.reply(`*💔💔 HA OCURRIDO UN ERROR EN EL BOT 💔💔* ${error}`);
+        msg.reply(`*💔💔 HA OCURRIDO UN ERROR EN EL BOT 💔💔*\n ${error}`);
         console.log(error);
     }
 }
