@@ -41,7 +41,7 @@ if (process.env.ENV === CONFIG.ENV_ACC) {
 
 }
 if (process.env.ENV === CONFIG.ENV_DEV || process.env.ENV === CONFIG.ENV_PRD) {
-    client = new Client({ puppeteer: { headless: false, args: ['--no-sandbox'] }, clientId: CONFIG.WA_CLIENT_ID });
+    client = new Client({ puppeteer: { headless: true, args: ['--no-sandbox'] }, clientId: CONFIG.WA_CLIENT_ID });
 }
 
 client.initialize();
