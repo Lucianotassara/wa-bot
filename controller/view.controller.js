@@ -4,7 +4,7 @@ let pm2 = require('pm2');
 const viewController = express.Router();
 const CONFIG = require('../utils/config.json');
 
-viewController.route('/bot').get(
+viewController.route('/').get(
     (req, res) => {
         var responseText = 'Hello World!';
         responseText += 'Requested at: ' + req.client + '';

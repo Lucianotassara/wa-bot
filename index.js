@@ -139,7 +139,7 @@ let clientMiddleware = function (req, res, next) {
     next();
 };
 
-app.use('/bot', clientMiddleware);
+app.use('/', clientMiddleware);
 app.use('/restartBot', clientMiddleware);
 app.use('/stopBot', clientMiddleware);
 app.use('/botStatus', clientMiddleware);
