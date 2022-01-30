@@ -1,6 +1,6 @@
 import gSheetController from './gsheet.controller'
 import viewController from './view.controller'
-import pm2Controller from './pm2.controller'
+import clientController from './client.controller'
 import {
     getReceivers,
     sendReceivers,
@@ -20,5 +20,5 @@ export {
     processContacts,
     gSheetController,
     viewController,
-    pm2Controller
+    clientController
 }

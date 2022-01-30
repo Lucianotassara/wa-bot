@@ -7,12 +7,12 @@ gSheetController.get('/fetchPhones', async function(req, res){
   const { GoogleSpreadsheet } = require('google-spreadsheet');
 
   // Initialize the sheet - doc ID is the long id in the sheets URL
-  const doc = new GoogleSpreadsheet(CONFIG.GSHEET_SPREADSHEET_ID);
+  const doc = new GoogleSpreadsheet(CONFIG.GSHEET.SPREADSHEET_ID);
 
   // Initialize Auth 
   await doc.useServiceAccountAuth({
-    client_email: CONFIG.GSHEET_CLIENT_EMAIL,
-    private_key: CONFIG.GSHEET_PRIVATE_KEY,
+    client_email: CONFIG.GSHEET.CLIENT_EMAIL,
+    private_key: CONFIG.GSHEET.PRIVATE_KEY,
   });
 
   await doc.loadInfo(); // loads document properties and worksheets

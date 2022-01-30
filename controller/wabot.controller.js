@@ -7,8 +7,8 @@ import fetch from 'node-fetch';
 // Load receivers from an API
 export async function getReceivers(){
     try {
-        const response = await fetch(CONFIG.GSHEET_EXPRESS_API, {
-            headers: {'Authorization': CONFIG.WA_BOT_SECRET}
+        const response = await fetch(CONFIG.GSHEET.EXPRESS_API, {
+            headers: {'Authorization': CONFIG.WA.SECRET}
         });
         const json = await response.json();
         console.log(`Haciendo fetch a gsheet-extraction-microservice para obtener los remitentes`)
@@ -32,13 +32,13 @@ export async function sendReceivers(client, msg){
         })
         console.log(`Cantidad de destinatarios ${res.length}`)
 
-        // Setting up a limit of CONFIG.MAX_ALLOWED_MSG receivers to avoid being blocked by whatsapp
-        if(res.length <= CONFIG.MAX_ALLOWED_MSG ){
+        // Setting up a limit of CONFIG.WA.MSG_LIMIT receivers to avoid being blocked by whatsapp
+        if(res.length <= CONFIG.WA.MSG_LIMIT ){
             const quotedMsg = await msg.getQuotedMessage();
             console.log('Showing quoted message',quotedMsg);
             let attachmentData;
             (quotedMsg && quotedMsg.hasMedia) ?  attachmentData = await quotedMsg.downloadMedia() : ''
-            let originalMessage = msg.body.slice(CONFIG.SEND_MSG_CMD.length + 1);
+            let originalMessage = msg.body.slice(CONFIG.CMD.SEND_MSG.length + 1);
             let counter = 0;
             for (const receiver of receivers) {
                 console.log('showing this receiver.. '+receiver.nickname);
@@ -69,7 +69,7 @@ export async function sendReceivers(client, msg){
             }
             msg.reply(`Se enviaron mensajes a ${counter} destinatarios`);  
         } else {
-            msg.reply(`*💔💔 HA OCURRIDO UN ERROR EN EL BOT 💔💔*\n - Demasiados destinatarios. No se puede enviar a mas de ${CONFIG.MAX_ALLOWED_MSG}, se cargaron ${res.length} destinatarios`);  
+            msg.reply(`*💔💔 HA OCURRIDO UN ERROR EN EL BOT 💔💔*\n - Demasiados destinatarios. No se puede enviar a mas de ${CONFIG.WA.MSG_LIMIT}, se cargaron ${res.length} destinatarios`);  
         }
         chat.clearState();
 

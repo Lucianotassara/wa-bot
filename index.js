@@ -13,7 +13,7 @@ import {
     sendReceivers,
     processContacts,
     gSheetController,
-    pm2Controller,
+    clientController,
     viewController
 } from './controller';
 
@@ -25,8 +25,9 @@ const basicAuth = require('express-basic-auth')
 const CONFIG = require('./utils/config.json');
 const SESSION_FILE_PATH = './utils/session.json';
 const app = express();
+let forwardMode = false;
 
-mongoose.connect(CONFIG.WA_BOT_MONGO_URI || 'mongodb://localhost/wa-bot', { useNewUrlParser: true });
+mongoose.connect(CONFIG.WA.MONGO_URI || 'mongodb://localhost/wa-bot', { useNewUrlParser: true });
 mongoose.set('debug', true);
 
 
@@ -39,12 +40,12 @@ let client;
 
 console.log(`Environment -----> ${process.env.ENV}`);
 
-if (process.env.ENV === CONFIG.ENV_ACC) {
-    client = new Client({ puppeteer: { headless: true, executablePath: 'chromium-browser', args: ['--no-sandbox'] }, clientId: CONFIG.WA_CLIENT_ID });
+if (process.env.ENV === CONFIG.ENV.ACC) {
+    client = new Client({ puppeteer: { headless: true, executablePath: 'chromium-browser', args: ['--no-sandbox'] }, clientId: CONFIG.WA.CLIENT_ID });
 
 }
-if (process.env.ENV === CONFIG.ENV_DEV || process.env.ENV === CONFIG.ENV_PRD) {
-    client = new Client({ puppeteer: { headless: true, args: ['--no-sandbox'] }, clientId: CONFIG.WA_CLIENT_ID });
+if (process.env.ENV === CONFIG.ENV.DEV || process.env.ENV === CONFIG.ENV.PRD) {
+    client = new Client({ puppeteer: { headless: false, args: ['--no-sandbox'] }, clientId: CONFIG.WA.CLIENT_ID });
 }
 
 client.initialize();
@@ -68,23 +69,35 @@ client.on('auth_failure', msg => {
 
 client.on('ready', () => {
     console.log('READY');
-    client.sendMessage(CONFIG.ADMIN_GROUP, '🤖🤖🤖🤖🤖🤖🤖🤖\n       BOT PREPARADO    \n🤖🤖🤖🤖🤖🤖🤖🤖');
+    client.sendMessage(CONFIG.WA.ADMIN_GROUP, '🤖🤖🤖🤖🤖🤖🤖🤖\n       BOT PREPARADO    \n🤖🤖🤖🤖🤖🤖🤖🤖');
 
 });
 
 client.on('message_create', (msg) => {
     // console.log('<<<<< RECEIVED_1: ', msg);
     if (msg.fromMe) {
-        if (msg.to.endsWith(CONFIG.ALLOWED_SENDER_GROUP)) {
-            if (msg.body.startsWith(CONFIG.SEND_MSG_CMD)) {
-                sendReceivers(client, msg);
+        if (msg.to.endsWith(CONFIG.WA.SENDER_GROUP)) {
+            if(msg.body.startsWith('!')){
+                if (msg.body.startsWith(CONFIG.CMD.SEND_MSG)) {
+                    sendReceivers(client, msg);
 
-            } else if (msg.body === CONFIG.GET_STATUS_CMD) {
-                getStatus(msg);
+                } else if (msg.body === CONFIG.CMD.GET_STATUS) {
+                    getStatus(msg);
 
-            } else if (msg.body === CONFIG.CONTACTS_CMD) {
-                processContacts(client, msg);
+                } else if (msg.body === CONFIG.CMD.UPDATE_CONTACTS) {
+                    processContacts(client, msg);
 
+                }else if (msg.body === CONFIG.CMD.FORWARD_MODE) {
+                    forwardMode = !forwardMode;
+                    client.sendMessage(CONFIG.WA.ADMIN_GROUP, `🤖🤖 Forward mode status: ${forwardMode}` );
+                    
+                }
+            } else {
+                let comands = CONFIG;
+                comands.filter(function(key){
+                    return key.type.endsWith()
+                })
+                msg.reply(`*🤓🤓🤓 No se reconoce el comando 🤓🤓🤓*\n Posibles comandos: \n `);
             }
         }
     }
@@ -92,17 +105,23 @@ client.on('message_create', (msg) => {
 
 client.on('message', async msg => {
     (msg.id.remote === 'status@broadcast') ? '' : console.log('<<<<< RECEIVED: ', msg);
-    if (msg.from.endsWith(CONFIG.ALLOWED_SENDER_GROUP)) {
-        if (msg.body.startsWith(CONFIG.SEND_MSG_CMD)) {
+    if (msg.from.endsWith(CONFIG.WA.SENDER_GROUP)) {
+        if (msg.body.startsWith(CONFIG.CMD.SEND_MSG)) {
             sendReceivers(client, msg);
 
-        } else if (msg.body === CONFIG.GET_STATUS_CMD) {
+        } else if (msg.body === CONFIG.CMD.GET_STATUS) {
             getStatus(msg);
-
-        } else if (msg.body === CONFIG.CONTACTS_CMD) {
+            
+        } else if (msg.body === CONFIG.CMD.UPDATE_CONTACTS) {
             processContacts(client, msg);
-
+            
+        } else if (msg.body === CONFIG.CMD.FORWARD_MODE) {
+            forwardMode = !forwardMode;
+            client.sendMessage(CONFIG.WA.ADMIN_GROUP, `🤖🤖 Forward mode status: ${forwardMode}` );
+            
         }
+    } else if(forwardMode){
+        client.sendMessage(CONFIG.WA.ADMIN_GROUP, 'Forwarded message from: *'+ msg.data.notifyName + '*\nMessage body: \n'+msg.body);
     }
 });
 
@@ -159,14 +178,14 @@ app.set("view engine", "ejs");
 app.use("/", express.static(__dirname + "/views"));
 
 app.use(basicAuth({
-    users: { 'admin': CONFIG.LOGIN_PSSWD },
+    users: { 'admin': CONFIG.API.LOGIN_PSSWD },
     challenge: true,
     // realm: 'foo',
 }))
 
 
 // API
-app.use(gSheetController, pm2Controller, viewController);
+app.use(gSheetController, clientController, viewController);
 
 
 function notFound(req, res, next) {
@@ -188,7 +207,7 @@ function errorHandler(err, req, res, next) {
 app.use(notFound);
 app.use(errorHandler);
 
-const expressPort = CONFIG.EXPRESS_PORT || 3010;
+const expressPort = CONFIG.API.PORT || 3010;
 
 app.listen(expressPort, () => {
     console.log(`Started successfully server at port ${expressPort}`);

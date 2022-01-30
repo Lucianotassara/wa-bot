@@ -1,10 +1,9 @@
 import express from 'express';
-let pm2 = require('pm2');
-const pm2Controller = express.Router();
-const CONFIG = require('../utils/config.json');
+const clientController = express.Router();
 
 
-pm2Controller.route('/restartBot').get(
+
+clientController.route('/restartBot').get(
     (req, res) => {
         var responseText = 'Starting the client';
         if(req.client){
@@ -22,7 +21,7 @@ pm2Controller.route('/restartBot').get(
     }
 );
 
-pm2Controller.route('/stopBot').get(
+clientController.route('/stopBot').get(
     (req, res) => {
         var responseText = 'Destroying the client';
         req.client.destroy();
@@ -34,7 +33,7 @@ pm2Controller.route('/stopBot').get(
     }
 );
 
-pm2Controller.route('/botStatus').get(
+clientController.route('/botStatus').get(
     (req, res) => {
         
         // Show bot or client status
@@ -48,4 +47,4 @@ pm2Controller.route('/botStatus').get(
     }
 );
 
-export default pm2Controller;
+export default clientController;
