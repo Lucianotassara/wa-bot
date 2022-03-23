@@ -5,7 +5,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import * as fs from 'fs';
 import mongoose from 'mongoose';
-import { Client } from 'whatsapp-web.js';
+import { Client, LocalAuth  } from 'whatsapp-web.js';
 import { Message } from './models'
 
 import {
@@ -41,11 +41,24 @@ let client;
 console.log(`Environment -----> ${process.env.ENV}`);
 
 if (process.env.ENV === CONFIG.ENV.ACC) {
-    client = new Client({ puppeteer: { headless: true, executablePath: 'chromium-browser', args: ['--no-sandbox'] }, clientId: CONFIG.WA.CLIENT_ID });
+    client = new Client({ 
+        puppeteer: { 
+            headless: CONFIG.ENV.HEADLESS, 
+            executablePath: 'chromium-browser', 
+            args: ['--no-sandbox'] 
+        },
+        authStrategy: new LocalAuth({ clientId: CONFIG.WA.CLIENT_ID })
+    });
 
 }
 if (process.env.ENV === CONFIG.ENV.DEV || process.env.ENV === CONFIG.ENV.PRD) {
-    client = new Client({ puppeteer: { headless: true, args: ['--no-sandbox'] }, clientId: CONFIG.WA.CLIENT_ID });
+    client = new Client({
+        puppeteer: { 
+            headless: CONFIG.ENV.HEADLESS, 
+            args: ['--no-sandbox'] 
+        }, 
+        authStrategy: new LocalAuth({ clientId: CONFIG.WA.CLIENT_ID }) 
+    });
 }
 
 client.initialize();
