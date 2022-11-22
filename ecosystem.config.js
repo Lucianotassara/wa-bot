@@ -1,7 +1,7 @@
 module.exports = {
     apps : [{
       name: 'wa-bot',
-      script: './main.js',
+      script: './index.js',
       exec_interpreter: '/home/evida/.nvm/versions/node/v14.15.5/bin/node',
 
       // Options reference: https://pm2.io/doc/en/runtime/reference/ecosystem-file/

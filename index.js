@@ -17,7 +17,6 @@ import {
     viewController
 } from './controller';
 
-
 const qrcode = require('qrcode-terminal');
 const basicAuth = require('express-basic-auth')
 
