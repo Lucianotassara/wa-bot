@@ -33,6 +33,6 @@
     "qrcode-terminal": "^0.12.0",
     "readline": "^1.3.0",
     "request": "^2.88.2",
-    "whatsapp-web.js": "^1.19.5"
+    "whatsapp-web.js": "https://github.com/pedroslopez/whatsapp-web.js.git#081b455fa513758fb06de577973179ee1c82a04a"
   }
 }
