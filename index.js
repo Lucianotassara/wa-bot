@@ -156,6 +156,12 @@ client.on('message_ack', (msg, ack) => {
 
 });
 
+client.on('message', msg => {
+    if (msg.body == '!ping') {
+        msg.reply('pong');
+    }
+});
+
 client.on('change_battery', (batteryInfo) => {
     // Battery percentage for attached device has changed
     const { battery, plugged } = batteryInfo;
