@@ -6,7 +6,7 @@ module.exports = {
 
       // Options reference: https://pm2.io/doc/en/runtime/reference/ecosystem-file/
       args: '--update-env',
-      node_args: ['-r', 'esm'],
+      node_args: ['-r', 'esm-wallaby'],
       instances: 1,
       autorestart: false,
       watch: false,
