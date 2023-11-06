@@ -140,3 +140,4 @@ ecosystem.config.js
 client_secret.json
 WWebJS/
 .wwebjs_auth/
+.wwebjs_cache/

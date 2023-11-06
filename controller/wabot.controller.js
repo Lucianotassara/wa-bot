@@ -165,7 +165,3 @@ export async function processContacts(client, msg){
         console.log(error);
     }
 }
-
-
-
-
