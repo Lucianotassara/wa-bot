@@ -1,12 +1,12 @@
 module.exports = {
     apps : [{
       name: 'wa-bot',
-      script: './index.js',
+      script: './index.mjs',
       exec_interpreter: '/home/evida/.nvm/versions/node/v14.15.5/bin/node',
 
       // Options reference: https://pm2.io/doc/en/runtime/reference/ecosystem-file/
       args: '--update-env',
-      node_args: ['-r', 'esm-wallaby'],
+      node_args: [],
       instances: 1,
       autorestart: false,
       watch: false,

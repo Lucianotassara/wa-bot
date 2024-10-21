@@ -1,12 +1,11 @@
-'use strict';
-let mongoose = require('mongoose');
+import mongoose from 'mongoose';
+
 let Schema = mongoose.Schema;
 
-let ContactIdSchema = mongoose.Schema({
+let ContactIdSchema = new Schema({
     server: { type: String },
     user: { type: String },
     _serialized: { type: String }
-
 });
 
 let ContactSchema = new Schema({
@@ -32,7 +31,7 @@ let ContactSchema = new Schema({
     isWAContact: { type: Boolean },
     isMyContact: { type: Boolean },
     isBlocked: { type: Boolean }
-
 });
 
-module.exports = mongoose.model("Contact", ContactSchema);
+const Contact = mongoose.model("Contact", ContactSchema);
+export default Contact;
