@@ -2,7 +2,7 @@ import express from 'express';
 
 
 const viewController = express.Router();
-const CONFIG = require('../utils/config.json');
+import CONFIG from '../utils/config.mjs';
 
 viewController.route('/').get(
     (req, res) => {

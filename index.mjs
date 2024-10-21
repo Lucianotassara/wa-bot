@@ -5,8 +5,9 @@ import cors from 'cors';
 import helmet from 'helmet';
 import * as fs from 'fs';
 import mongoose from 'mongoose';
-import { Client, LocalAuth  } from 'whatsapp-web.js';
-import { Message } from './models'
+import pkg from 'whatsapp-web.js';
+const { Client, LocalAuth } = pkg;
+import { Message } from './models/index.mjs';
 
 import {
     getStatus,
@@ -15,13 +16,11 @@ import {
     gSheetController,
     clientController,
     viewController
-} from './controller';
+} from './controller/index.mjs';
 
-const qrcode = require('qrcode-terminal');
-const basicAuth = require('express-basic-auth')
-
-
-const CONFIG = require('./utils/config.json');
+import qrcode from 'qrcode-terminal';
+import basicAuth from 'express-basic-auth';
+import CONFIG from './utils/config.mjs';
 const SESSION_FILE_PATH = './utils/session.json';
 const app = express();
 let forwardMode = false;
@@ -29,10 +28,9 @@ let forwardMode = false;
 mongoose.connect(CONFIG.WA.MONGO_URI || 'mongodb://localhost/wa-bot', { useNewUrlParser: true });
 mongoose.set('debug', true);
 
-
 let sessionCfg;
 if (fs.existsSync(SESSION_FILE_PATH)) {
-    sessionCfg = require(SESSION_FILE_PATH);
+    sessionCfg = JSON.parse(fs.readFileSync(SESSION_FILE_PATH, 'utf-8'));
 }
 
 let client;
@@ -40,15 +38,18 @@ let client;
 console.log(`Environment -----> ${process.env.ENV}`);
 
 if (process.env.ENV === CONFIG.ENV.ACC) {
-    client = new Client({ 
+    client = new Client({
+        webVersionCache: {
+            type: 'remote',
+            remotePath: `https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2409.0.html`,
+        },
         puppeteer: { 
             headless: CONFIG.ENV.HEADLESS, 
             executablePath: 'chromium-browser', 
             args: ['--no-sandbox'] 
         },
-        authStrategy: new LocalAuth({ clientId: CONFIG.WA.CLIENT_ID })
+        authStrategy: new LocalAuth({ clientId: CONFIG.WA.CLIENT_ID }),
     });
-
 }
 if (process.env.ENV === CONFIG.ENV.DEV || process.env.ENV === CONFIG.ENV.PRD) {
     client = new Client({
@@ -56,18 +57,19 @@ if (process.env.ENV === CONFIG.ENV.DEV || process.env.ENV === CONFIG.ENV.PRD) {
             headless: CONFIG.ENV.HEADLESS, 
             args: ['--no-sandbox'] 
         }, 
-        authStrategy: new LocalAuth({ clientId: CONFIG.WA.CLIENT_ID }) 
+        authStrategy: new LocalAuth({ clientId: CONFIG.WA.CLIENT_ID }),
+        webVersionCache: {
+            type: 'remote',
+            remotePath: `https://raw.githubusercontent.com/wppconnect-team/wa-version/main/html/2.2409.0.html`,
+        }
     });
 }
 
 client.initialize();
 
-
 client.on('qr', (qr) => {
-    // NOTE: This event will not be fired if a session is specified.
     qrcode.generate(qr, { small: true });
     console.log('QR RECEIVED', qr);
-    qrcode.generate(qr, {small: true});
 });
 
 client.on('authenticated', () => {
@@ -75,40 +77,33 @@ client.on('authenticated', () => {
 });
 
 client.on('auth_failure', msg => {
-    // Fired if session restore was unsuccessfull
     console.error('AUTHENTICATION FAILURE', msg);
 });
 
 client.on('ready', () => {
     console.log('READY');
     client.sendMessage(CONFIG.WA.ADMIN_GROUP, '🤖🤖🤖🤖🤖🤖🤖🤖\n       BOT PREPARADO    \n🤖🤖🤖🤖🤖🤖🤖🤖');
-
 });
 
 client.on('message_create', (msg) => {
-    // console.log('<<<<< RECEIVED_1: ', msg);
     if (msg.fromMe) {
         if (msg.to.endsWith(CONFIG.WA.SENDER_GROUP)) {
-            if(msg.body.startsWith('!')){
+            if (msg.body.startsWith('!')) {
                 if (msg.body.startsWith(CONFIG.CMD.SEND_MSG)) {
                     sendReceivers(client, msg);
-
                 } else if (msg.body === CONFIG.CMD.GET_STATUS) {
                     getStatus(msg);
-
                 } else if (msg.body === CONFIG.CMD.UPDATE_CONTACTS) {
                     processContacts(client, msg);
-
-                }else if (msg.body === CONFIG.CMD.FORWARD_MODE) {
+                } else if (msg.body === CONFIG.CMD.FORWARD_MODE) {
                     forwardMode = !forwardMode;
-                    client.sendMessage(CONFIG.WA.ADMIN_GROUP, `🤖🤖 Forward mode status: ${forwardMode}` );
-                    
+                    client.sendMessage(CONFIG.WA.ADMIN_GROUP, `🤖🤖 Forward mode status: ${forwardMode}`);
                 }
             } else {
-                let comands = CONFIG;
-                comands.filter(function(key){
-                    return key.type.endsWith()
-                })
+                let commands = CONFIG;
+                commands.filter(function (key) {
+                    return key.type.endsWith();
+                });
                 msg.reply(`*🤓🤓🤓 No se reconoce el comando 🤓🤓🤓*\n Posibles comandos: \n `);
             }
         }
@@ -120,50 +115,33 @@ client.on('message', async msg => {
     if (msg.from.endsWith(CONFIG.WA.SENDER_GROUP)) {
         if (msg.body.startsWith(CONFIG.CMD.SEND_MSG)) {
             sendReceivers(client, msg);
-
         } else if (msg.body === CONFIG.CMD.GET_STATUS) {
             getStatus(msg);
-            
         } else if (msg.body === CONFIG.CMD.UPDATE_CONTACTS) {
             processContacts(client, msg);
-            
         } else if (msg.body === CONFIG.CMD.FORWARD_MODE) {
             forwardMode = !forwardMode;
-            client.sendMessage(CONFIG.WA.ADMIN_GROUP, `🤖🤖 Forward mode status: ${forwardMode}` );
-            
+            client.sendMessage(CONFIG.WA.ADMIN_GROUP, `🤖🤖 Forward mode status: ${forwardMode}`);
         }
-    } else if(forwardMode){
-        client.sendMessage(CONFIG.WA.ADMIN_GROUP, 'Forwarded message from: *'+ msg.data.notifyName + '*\nMessage body: \n'+msg.body);
+    } else if (forwardMode) {
+        client.sendMessage(CONFIG.WA.ADMIN_GROUP, 'Forwarded message from: *' + msg.data.notifyName + '*\nMessage body: \n' + msg.body);
     }
 });
 
 client.on('message_ack', (msg, ack) => {
-    /*
-        == ACK VALUES ==
-        ACK_ERROR: -1
-        ACK_PENDING: 0
-        ACK_SERVER: 1
-        ACK_DEVICE: 2
-        ACK_READ: 3
-        ACK_PLAYED: 4
-    */
-
-    // Mongoose: findOneAndUpdate, search for message sent and update the ack value.
     Message.findOneAndUpdate({ "id._serialized": msg.id._serialized },
         { $set: { 'ack': ack } }, { upsert: false }, function (err, r) {
-            if (err) console.log('error: ', err)
-        })
-
+            if (err) console.log('error: ', err);
+        });
 });
 
 client.on('message', msg => {
-    if (msg.body == '!ping') {
+    if (msg.body === '!ping') {
         msg.reply('pong');
     }
 });
 
 client.on('change_battery', (batteryInfo) => {
-    // Battery percentage for attached device has changed
     const { battery, plugged } = batteryInfo;
     console.log(`Battery: ${battery}% - Charging? ${plugged}`);
 });
@@ -172,11 +150,9 @@ client.on('disconnected', (reason) => {
     console.log('Client was logged out', reason);
 });
 
-
-
 let clientMiddleware = function (req, res, next) {
     req.client = client;
-    console.log("Estoy dentro del middleware, wachoooooooo.. re piola")
+    console.log("Middleware initialized");
     next();
 };
 
@@ -193,18 +169,14 @@ app.use(morgan('tiny'));
 
 app.set("view engine", "ejs");
 
-app.use("/", express.static(__dirname + "/views"));
+app.use("/", express.static(new URL('./views', import.meta.url).pathname));
 
 app.use(basicAuth({
     users: { 'admin': CONFIG.API.LOGIN_PSSWD },
     challenge: true,
-    // realm: 'foo',
-}))
+}));
 
-
-// API
 app.use(gSheetController, clientController, viewController);
-
 
 function notFound(req, res, next) {
     const error = new Error(`Not Found - ${req.originalUrl}`);
@@ -212,7 +184,6 @@ function notFound(req, res, next) {
     next(error);
 }
 
-// eslint-disable-next-line
 function errorHandler(err, req, res, next) {
     const status = err.status || 500;
     res.status(status);
@@ -229,5 +200,4 @@ const expressPort = CONFIG.API.PORT || 3010;
 
 app.listen(expressPort, () => {
     console.log(`Started successfully server at port ${expressPort}`);
-
 });

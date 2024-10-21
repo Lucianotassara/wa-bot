@@ -1,14 +1,14 @@
-'use strict';
-let mongoose = require('mongoose');
+import mongoose from 'mongoose';
+
 let Schema = mongoose.Schema;
 
-let RemoteSchema = mongoose.Schema({
+let RemoteSchema = new Schema({
     server: { type: String },
     user: { type: String },
     _serialized: { type: String }
 });
 
-let IdSchema = mongoose.Schema({
+let IdSchema = new Schema({
     fromMe: { type: Boolean },
     remote: {
         type: RemoteSchema,
@@ -48,4 +48,5 @@ let MessageSchema = new Schema({
     }
 });
 
-module.exports = mongoose.model("Message", MessageSchema);
+const Message = mongoose.model("Message", MessageSchema);
+export default Message;

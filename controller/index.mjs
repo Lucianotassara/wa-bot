@@ -1,6 +1,6 @@
-import gSheetController from './gsheet.controller'
-import viewController from './view.controller'
-import clientController from './client.controller'
+import gSheetController from './gsheet.controller.mjs';
+import viewController from './view.controller.mjs';
+import clientController from './client.controller.mjs';
 import {
     getReceivers,
     sendReceivers,
@@ -8,8 +8,7 @@ import {
     sendAudio,
     getStatus,
     processContacts,
-} from './wabot.controller'
-
+} from './wabot.controller.mjs';
 
 export {
     getReceivers,
@@ -21,4 +20,4 @@ export {
     gSheetController,
     viewController,
     clientController
-}
+};
