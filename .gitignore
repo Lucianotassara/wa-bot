@@ -135,6 +135,7 @@ temp/
 session.json.*
 session.json
 config.json
+config.mjs
 config.json.*
 ecosystem.config.js
 client_secret.json
