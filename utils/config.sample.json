@@ -1,14 +1,30 @@
 {
-    "ENV_DEV": "",
-    "ENV_ACC": "",
-    "ENV_PRD": "",
-    "GSHEET_EXPRESS_API": "",
-    "ALLOWED_SENDER_GROUP": "",
-    "ADMIN_GROUP": "",
-    "WA_BOT_SECRET": "",
-    "MAX_ALLOWED_MSG": 200,
-    "GET_STATUS_CMD": "",
-    "SEND_MSG_CMD": "",
-    "CONTACTS_CMD": ""
-
+    "WA": {
+        "MONGO_URI": "mongodb://localhost/wa-bot",
+        "CLIENT_ID": "wa-bot",
+        "ADMIN_GROUP": "XXXXXXXXXX@g.us",
+        "SENDER_GROUP": "XXXXXXXXXX@g.us",
+        "MSG_LIMIT": 10
+    },
+    "GSHEET": {
+        "SPREADSHEET_ID": "",
+        "CLIENT_EMAIL": "",
+        "PRIVATE_KEY": "",
+        "EXPRESS_API": "http://localhost:3010/fetchPhones"
+    },
+    "API": {
+        "PORT": 3010,
+        "LOGIN_PSSWD": "changeme"
+    },
+    "CMD": {
+        "SEND_MSG": "!send",
+        "GET_STATUS": "!status",
+        "UPDATE_CONTACTS": "!contacts"
+    },
+    "ENV": {
+        "ACC": "ACC",
+        "DEV": "DEV",
+        "PRD": "PRD",
+        "HEADLESS": true
+    }
 }
