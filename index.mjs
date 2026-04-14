@@ -2,7 +2,6 @@ import express from 'express';
 import morgan from 'morgan';
 import cors from 'cors';
 import helmet from 'helmet';
-import * as fs from 'fs';
 import mongoose from 'mongoose';
 import pkg from 'whatsapp-web.js';
 const { Client, LocalAuth } = pkg;
@@ -16,16 +15,24 @@ import {
     clientController,
     viewController,
     messageController,
+    qrController,
 } from './controller/index.mjs';
 
-import qrcode from 'qrcode-terminal';
+import { setLatestQR, setAuthenticated } from './controller/qr.controller.mjs';
+import { startScheduler } from './utils/jobs.mjs';
+
+import qrTerminal from 'qrcode-terminal';
 import basicAuth from 'express-basic-auth';
 import CONFIG from './utils/config.mjs';
 
-const app = express();
-
+// ---------------------------------------------------------------------------
+// Database
+// ---------------------------------------------------------------------------
 mongoose.connect(CONFIG.WA.MONGO_URI || 'mongodb://localhost/wa-bot');
 
+// ---------------------------------------------------------------------------
+// WhatsApp client
+// ---------------------------------------------------------------------------
 const puppeteerArgs = ['--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage'];
 
 const client = new Client({
@@ -43,27 +50,31 @@ const client = new Client({
 
 client.initialize();
 
+// ---------------------------------------------------------------------------
+// WhatsApp events
+// ---------------------------------------------------------------------------
 client.on('qr', (qr) => {
-    qrcode.generate(qr, { small: true });
-    console.log('QR RECEIVED', qr);
+    qrTerminal.generate(qr, { small: true });
+    console.log('QR RECEIVED — open /qr in the browser to scan');
+    setLatestQR(qr);
 });
 
 client.on('authenticated', () => {
     console.log('AUTHENTICATED');
 });
 
+client.on('ready', () => {
+    console.log('READY');
+    setAuthenticated();
+    client.sendMessage(CONFIG.WA.ADMIN_GROUP, '🤖 BOT PREPARADO 🤖');
+});
+
 client.on('auth_failure', (msg) => {
     console.error('AUTHENTICATION FAILURE', msg);
 });
 
-client.on('ready', () => {
-    console.log('READY');
-    client.sendMessage(CONFIG.WA.ADMIN_GROUP, '🤖 BOT PREPARADO 🤖');
-});
-
 client.on('message', async (msg) => {
     if (msg.id.remote === 'status@broadcast') return;
-
     console.log('<<<<< RECEIVED:', msg.body);
 
     if (msg.body === '!ping') {
@@ -71,10 +82,9 @@ client.on('message', async (msg) => {
         return;
     }
 
-    const fromAllowedGroup = msg.from.endsWith(CONFIG.WA.SENDER_GROUP) || msg.fromMe;
-    if (!fromAllowedGroup) {
-        return;
-    }
+    const fromAllowedGroup =
+        msg.from.endsWith(CONFIG.WA.SENDER_GROUP) || msg.fromMe;
+    if (!fromAllowedGroup) return;
 
     if (msg.body.startsWith(CONFIG.CMD.SEND_MSG)) {
         sendReceivers(client, msg);
@@ -95,14 +105,40 @@ client.on('message_ack', async (msg, ack) => {
     } catch (err) {
         console.error('message_ack update error:', err);
     }
+
+    // Webhook notification
+    if (CONFIG.API?.WEBHOOK_URL) {
+        fetch(CONFIG.API.WEBHOOK_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                event: 'message_ack',
+                messageId: msg.id._serialized,
+                to: msg.to,
+                ack,
+                // ACK_ERROR:-1 ACK_PENDING:0 ACK_SERVER:1 ACK_DEVICE:2 ACK_READ:3 ACK_PLAYED:4
+                timestamp: Date.now(),
+            }),
+        }).catch((err) => console.error('Webhook error:', err.message));
+    }
 });
 
 client.on('disconnected', (reason) => {
     console.log('Client was logged out', reason);
 });
 
+// ---------------------------------------------------------------------------
+// Scheduler — dispatches scheduled messages every 30 s
+// ---------------------------------------------------------------------------
+startScheduler(() => client);
+
+// ---------------------------------------------------------------------------
+// Express app
+// ---------------------------------------------------------------------------
+const app = express();
+
 // Attach WhatsApp client to every request
-app.use((req, res, next) => {
+app.use((req, _res, next) => {
     req.client = client;
     next();
 });
@@ -117,11 +153,17 @@ app.set('view engine', 'ejs');
 app.use('/', express.static(new URL('./views', import.meta.url).pathname));
 
 app.use(basicAuth({
-    users: { 'admin': CONFIG.API.LOGIN_PSSWD },
+    users: { admin: CONFIG.API.LOGIN_PSSWD },
     challenge: true,
 }));
 
-app.use(gSheetController, clientController, viewController, messageController);
+app.use(
+    gSheetController,
+    clientController,
+    viewController,
+    messageController,
+    qrController,
+);
 
 function notFound(req, res, next) {
     const error = new Error(`Not Found - ${req.originalUrl}`);
@@ -129,7 +171,7 @@ function notFound(req, res, next) {
     next(error);
 }
 
-function errorHandler(err, req, res, next) {
+function errorHandler(err, req, res, _next) {
     const status = err.status || 500;
     res.status(status).json({ status, error: err.message });
 }

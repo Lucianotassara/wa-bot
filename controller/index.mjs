@@ -2,9 +2,9 @@ import gSheetController from './gsheet.controller.mjs';
 import viewController from './view.controller.mjs';
 import clientController from './client.controller.mjs';
 import messageController from './message.controller.mjs';
+import qrController from './qr.controller.mjs';
 import {
     getReceivers,
-    sendBulkMessages,
     sendReceivers,
     sendImage,
     sendAudio,
@@ -14,7 +14,6 @@ import {
 
 export {
     getReceivers,
-    sendBulkMessages,
     sendReceivers,
     sendImage,
     sendAudio,
@@ -24,4 +23,5 @@ export {
     viewController,
     clientController,
     messageController,
+    qrController,
 };

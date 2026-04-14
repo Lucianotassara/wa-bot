@@ -14,7 +14,8 @@
     },
     "API": {
         "PORT": 3010,
-        "LOGIN_PSSWD": "changeme"
+        "LOGIN_PSSWD": "changeme",
+        "WEBHOOK_URL": ""
     },
     "CMD": {
         "SEND_MSG": "!send",

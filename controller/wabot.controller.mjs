@@ -1,71 +1,10 @@
+import { randomUUID } from 'crypto';
 import CONFIG from '../utils/config.mjs';
-import { Message, Contact } from '../models/index.mjs';
+import { Contact, Job } from '../models/index.mjs';
+import { getReceivers } from '../utils/get-receivers.mjs';
+import { processBulkJob } from '../utils/jobs.mjs';
 
-// Load receivers from the local /fetchPhones endpoint
-export async function getReceivers() {
-    const response = await fetch(CONFIG.GSHEET.EXPRESS_API, {
-        headers: { Authorization: `Basic ${Buffer.from(`admin:${CONFIG.API.LOGIN_PSSWD}`).toString('base64')}` },
-    });
-    const json = await response.json();
-    console.log(`Receivers from Google Sheets: ${json.length}`);
-    return json;
-}
-
-/**
- * Core bulk-send logic. Decoupled from WhatsApp message context so it
- * can be called both from WhatsApp commands and the REST API.
- *
- * @param {Client} client   - whatsapp-web.js client
- * @param {string} template - message body (supports %APODO% and %NOMBRE%)
- * @param {object} [media]  - optional { data, mimetype, filename } attachment
- * @returns {{ sent: number, errors: string[] }}
- */
-export async function sendBulkMessages(client, template, media = null) {
-    const receivers = await getReceivers();
-    const valid = receivers.filter((r) => r.phone);
-
-    if (valid.length > CONFIG.WA.MSG_LIMIT) {
-        throw new Error(
-            `Too many recipients: ${valid.length} exceeds limit of ${CONFIG.WA.MSG_LIMIT}`
-        );
-    }
-
-    let sent = 0;
-    const errors = [];
-
-    for (const receiver of valid) {
-        try {
-            const number = receiver.phone.includes('@c.us')
-                ? receiver.phone
-                : `${receiver.phone}@c.us`;
-
-            let text = template
-                .replace('%APODO%', receiver.nickname || '')
-                .replace('%NOMBRE%', receiver.name || '');
-
-            let m;
-            if (media) {
-                m = await client.sendMessage(number, media, {
-                    caption: text,
-                });
-            } else {
-                m = await client.sendMessage(number, text);
-            }
-
-            await Message.findOneAndUpdate(
-                { 'id._serialized': m.id._serialized },
-                m,
-                { upsert: true }
-            );
-            sent++;
-        } catch (err) {
-            console.error(`Error sending to ${receiver.phone}:`, err.message);
-            errors.push(`${receiver.phone}: ${err.message}`);
-        }
-    }
-
-    return { sent, errors };
-}
+export { getReceivers };
 
 /** WhatsApp command: !send <message> */
 export async function sendReceivers(client, msg) {
@@ -75,15 +14,25 @@ export async function sendReceivers(client, msg) {
 
         const template = msg.body.slice(CONFIG.CMD.SEND_MSG.length + 1);
 
-        let media = null;
+        let mediaInput = null;
         const quotedMsg = await msg.getQuotedMessage().catch(() => null);
         if (quotedMsg?.hasMedia) {
-            media = await quotedMsg.downloadMedia();
+            const downloaded = await quotedMsg.downloadMedia();
+            mediaInput = {
+                data:     downloaded.data,
+                mimetype: downloaded.mimetype,
+                filename: downloaded.filename || 'media',
+            };
         }
 
-        const { sent, errors } = await sendBulkMessages(client, template, media);
+        const jobId = randomUUID();
+        await Job.create({ jobId, status: 'queued', type: 'bulk', total: 0 });
+        const { sent, errors } = await processBulkJob(client, jobId, template, mediaInput);
 
-        msg.reply(`Mensajes enviados: ${sent}${errors.length ? `\nErrores: ${errors.join(', ')}` : ''}`);
+        msg.reply(
+            `Mensajes enviados: ${sent}` +
+            (errors.length ? `\nErrores: ${errors.join(', ')}` : '')
+        );
         chat.clearState();
     } catch (error) {
         console.error(error);
