@@ -1,52 +1,37 @@
 import mongoose from 'mongoose';
 
-let Schema = mongoose.Schema;
+const { Schema } = mongoose;
 
-let RemoteSchema = new Schema({
-    server: { type: String },
-    user: { type: String },
-    _serialized: { type: String }
-});
+const IdSchema = new Schema({
+    fromMe:      { type: Boolean },
+    remote:      { type: String },   // plain JID string in wwebjs >=1.30
+    id:          { type: String },
+    _serialized: { type: String },
+}, { _id: false });
 
-let IdSchema = new Schema({
-    fromMe: { type: Boolean },
-    remote: {
-        type: RemoteSchema,
-        required: true
-    },
-    id: { type: String },
-    _serialized: { type: String }
-});
-
-let MessageSchema = new Schema({
-    mediaKey: { type: String },
-    id: {
-        type: IdSchema,
-        required: true
-    },
-    ack: { type: Number },
-    hasMedia: { type: Boolean },
-    body: { type: String },
-    type: { type: String },
-    timestamp: { type: Number },
-    from: { type: String },
-    to: { type: String },
-    author: { type: String },
-    isForwarded: { type: Boolean },
-    isStatus: { type: Boolean },
-    isStarred: { type: Boolean },
-    broadcast: { type: String },
-    fromMe: { type: Boolean },
+const MessageSchema = new Schema({
+    mediaKey:     { type: String },
+    id:           { type: IdSchema, required: true },
+    ack:          { type: Number },
+    hasMedia:     { type: Boolean },
+    body:         { type: String },
+    type:         { type: String },
+    timestamp:    { type: Number },
+    from:         { type: String },
+    to:           { type: String },
+    author:       { type: String },
+    isForwarded:  { type: Boolean },
+    isStatus:     { type: Boolean },
+    isStarred:    { type: Boolean },
+    broadcast:    { type: String },
+    fromMe:       { type: Boolean },
     hasQuotedMsg: { type: Boolean },
-    location: { type: String },
-    vCards: [],
+    location:     { type: String },
+    vCards:       [],
     mentionedIds: [],
-    links: { type: String },
-    created: {
-        type: Date,
-        default: Date.now
-    }
-});
+    links:        { type: String },
+    created:      { type: Date, default: Date.now },
+}, { strict: false });  // tolerate extra fields from future wwebjs versions
 
-const Message = mongoose.model("Message", MessageSchema);
+const Message = mongoose.model('Message', MessageSchema);
 export default Message;

@@ -31,7 +31,7 @@ let ContactSchema = new Schema({
     isWAContact: { type: Boolean },
     isMyContact: { type: Boolean },
     isBlocked: { type: Boolean }
-});
+}, { strict: false });
 
 const Contact = mongoose.model("Contact", ContactSchema);
 export default Contact;

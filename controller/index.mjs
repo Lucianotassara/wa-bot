@@ -1,6 +1,8 @@
 import gSheetController from './gsheet.controller.mjs';
 import viewController from './view.controller.mjs';
 import clientController from './client.controller.mjs';
+import messageController from './message.controller.mjs';
+import qrController from './qr.controller.mjs';
 import {
     getReceivers,
     sendReceivers,
@@ -19,5 +21,7 @@ export {
     processContacts,
     gSheetController,
     viewController,
-    clientController
+    clientController,
+    messageController,
+    qrController,
 };
