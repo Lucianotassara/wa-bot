@@ -73,17 +73,31 @@ client.on('auth_failure', (msg) => {
     console.error('AUTHENTICATION FAILURE', msg);
 });
 
+// Messages received from others
 client.on('message', async (msg) => {
     if (msg.id.remote === 'status@broadcast') return;
     console.log('<<<<< RECEIVED:', msg.body);
+    handleCommand(msg);
+});
 
+// Messages sent from this account's own device (commands typed by the operator)
+client.on('message_create', async (msg) => {
+    if (!msg.fromMe) return;
+    if (msg.id.remote === 'status@broadcast') return;
+    console.log('<<<<< FROM ME:', msg.body);
+    handleCommand(msg);
+});
+
+function handleCommand(msg) {
     if (msg.body === '!ping') {
         msg.reply('pong');
         return;
     }
 
+    const from = msg.fromMe ? msg.to : msg.from;
     const fromAllowedGroup =
-        msg.from.endsWith(CONFIG.WA.SENDER_GROUP) || msg.fromMe;
+        !CONFIG.WA.SENDER_GROUP ||
+        from.endsWith(CONFIG.WA.SENDER_GROUP);
     if (!fromAllowedGroup) return;
 
     if (msg.body.startsWith(CONFIG.CMD.SEND_MSG)) {
@@ -93,7 +107,7 @@ client.on('message', async (msg) => {
     } else if (msg.body === CONFIG.CMD.UPDATE_CONTACTS) {
         processContacts(client, msg);
     }
-});
+}
 
 client.on('message_ack', async (msg, ack) => {
     try {
