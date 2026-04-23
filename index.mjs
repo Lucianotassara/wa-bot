@@ -106,6 +106,9 @@ function handleCommand(msg) {
         getStatus(msg);
     } else if (msg.body === CONFIG.CMD.UPDATE_CONTACTS) {
         processContacts(client, msg);
+    } else if (CONFIG.CMD.FORWARD_MODE && msg.body === CONFIG.CMD.FORWARD_MODE) {
+        forwardMode = !forwardMode;
+        client.sendMessage(CONFIG.WA.ADMIN_GROUP, `🤖 Modo reenvío: ${forwardMode ? 'activado' : 'desactivado'}`);
     }
 }
 
@@ -149,6 +152,8 @@ startScheduler(() => client);
 // ---------------------------------------------------------------------------
 // Express app
 // ---------------------------------------------------------------------------
+let forwardMode = false;
+
 const app = express();
 
 // Attach WhatsApp client to every request
